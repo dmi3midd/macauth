@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"macauth/internal/config"
@@ -36,12 +37,26 @@ type dbService struct {
 }
 
 func New(cfg *config.Database) (DBService, error) {
-	db, err := sqlx.Open("sqlite3", cfg.DBUrl)
+	dsn := cfg.DBUrl
+	if !strings.Contains(dsn, "?") {
+		dsn += "?_foreign_keys=on"
+	} else if !strings.Contains(dsn, "_foreign_keys=") && !strings.Contains(dsn, "_fk=") {
+		dsn += "&_foreign_keys=on"
+	}
+
+	db, err := sqlx.Open("sqlite3", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
 	goose.SetBaseFS(migrations.FS)
+
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		log.Fatal(err)
+	}
+	if err := goose.Up(db.DB, "."); err != nil {
+		log.Fatal(err)
+	}
 
 	return &dbService{
 		db:    db,
