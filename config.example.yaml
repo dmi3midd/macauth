@@ -1,0 +1,10 @@
+database:
+  dbUrl: ./storage/macauth.db
+httpServer:
+  address: 0.0.0.0:2800
+  idleTimeout: 90s
+  readTimeout: 10s
+  writeTimeout: 20s
+pem:
+  privPath: ./keys/private.pem
+  pubPath: ./keys/public.pem
