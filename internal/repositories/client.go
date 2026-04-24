@@ -39,7 +39,9 @@ func NewClientRepo(db *sqlx.DB) ClientRepository {
 
 func (r *clientReposiroty) GetById(ctx context.Context, clientId string) (*models.Client, error) {
 	op := "clientRepository.GetById"
-	query := "SELECT * FROM clients WHERE id = $1"
+	query := `SELECT id, name, hashed_secret, created_at, updated_at 
+	FROM clients WHERE id = $1
+	`
 	var client models.Client
 	err := r.db.GetContext(ctx, &client, query, clientId)
 	if err != nil {
@@ -53,7 +55,9 @@ func (r *clientReposiroty) GetById(ctx context.Context, clientId string) (*model
 
 func (r *clientReposiroty) GetByName(ctx context.Context, name string) (*models.Client, error) {
 	op := "clientRepository.GetByName"
-	query := "SELECT * FROM clients WHERE name = $1"
+	query := `SELECT id, name, hashed_secret, created_at, updated_at 
+	FROM clients WHERE name = $1
+	`
 	var client models.Client
 	err := r.db.GetContext(ctx, &client, query, name)
 	if err != nil {
