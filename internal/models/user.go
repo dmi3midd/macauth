@@ -24,3 +24,9 @@ func NewUserDto(user *User) *UserDto {
 		Email:    user.Email,
 	}
 }
+
+type AuthDto struct {
+	ClientId string
+	UserDto
+	TokensPair
+}
