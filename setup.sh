@@ -27,10 +27,11 @@ if [ ! -f keys/private.pem ] || [ ! -f keys/public.pem ]; then
     openssl rsa -pubout -in keys/private.pem -out keys/public.pem 2>/dev/null
 fi
 
-# 5. Database file
+# 5. Database and log files
 if [ ! -f storage/db.sql ]; then
-    echo -e "Waiting for database file..."
+    echo -e "Waiting for database and log files..."
     touch storage/macauth.db
+    touch storage/macauth.log
 fi
 
 echo -e "Initialization is completed."

@@ -8,3 +8,5 @@ httpServer:
 pem:
   privPath: ./keys/private.pem
   pubPath: ./keys/public.pem
+log:
+  logPath: ./storage/macauth.log

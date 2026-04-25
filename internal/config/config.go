@@ -26,10 +26,15 @@ type PEM struct {
 	PubPath  string `mapstructure:"pubPath"`
 }
 
+type Log struct {
+	LogPath string `mapstructure:"logPath"`
+}
+
 type Config struct {
 	Database   `mapstructure:"database"`
 	HTTPServer `mapstructure:"httpServer"`
 	PEM        `mapstructure:"pem"`
+	Log        `mapstructure:"log"`
 	Keys       *KeysPair `mapstructure:"-"`
 }
 

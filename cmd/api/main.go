@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"macauth/internal/api"
 	"macauth/internal/config"
 	"macauth/internal/database"
+	"macauth/internal/logger"
 )
 
 func gracefulShutdown(apiServer *http.Server, done chan bool) {
@@ -22,7 +24,7 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 	// Listen for the interrupt signal.
 	<-ctx.Done()
 
-	log.Println("shutting down gracefully, press Ctrl+C again to force")
+	// log.Println("shutting down gracefully, press Ctrl+C again to force")
 	stop() // Allow Ctrl+C to force shutdown
 
 	// The context is used to inform the server it has 5 seconds to finish
@@ -30,10 +32,13 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := apiServer.Shutdown(ctx); err != nil {
-		log.Printf("Server forced to shutdown with error: %v", err)
+		slog.Info(
+			"server forced to shutdown with error",
+			slog.String("error", err.Error()),
+		)
 	}
 
-	log.Println("Server exiting")
+	slog.Info("server exiting")
 
 	// Notify the main goroutine that the shutdown is complete
 	done <- true
@@ -45,9 +50,16 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
+	logFile, err := logger.Setup(cfg.Log.LogPath)
+	if err != nil {
+		log.Fatalf("failed to setup logger: %v", err)
+	}
+	defer logFile.Close()
+
 	db, err := database.New(&cfg.Database)
 	if err != nil {
-		log.Fatalf("failed to initialize database: %v", err)
+		slog.Error("failed to initialize database", "error", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
@@ -59,13 +71,20 @@ func main() {
 	// Run graceful shutdown in a separate goroutine
 	go gracefulShutdown(server, done)
 
-	log.Printf("server is running on %s", cfg.HTTPServer.Address)
+	slog.Info(
+		"server is running",
+		slog.String("address", cfg.HTTPServer.Address),
+	)
 	err = server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
-		panic(fmt.Sprintf("http server error: %v", err))
+		slog.Error(
+			"failed to run server",
+			slog.String("error", err.Error()),
+		)
+		os.Exit(1)
 	}
 
 	// Wait for the graceful shutdown to complete
 	<-done
-	log.Println("Graceful shutdown complete.")
+	slog.Info("Graceful shutdown complete")
 }
