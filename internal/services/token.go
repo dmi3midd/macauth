@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/rs/xid"
 )
 
 var (
@@ -36,7 +35,7 @@ type TokenService interface {
 	// It returns ErrSubjectAndIDNotFound if subject or token ID are not found in claims.
 	ValidateAccessToken(refreshToken string) (*models.UserDto, string, error)
 	// SaveToken creates refresh token for the user.
-	SaveToken(ctx context.Context, refreshToken, userId, clientId string) (string, error)
+	SaveToken(ctx context.Context, refreshToken, userId, clientId, tokenId string) (string, error)
 	// RemoveToken removes refresh token.
 	// It returns ErrTokenNotFound if no token are found.
 	RemoveToken(ctx context.Context, id string) error
@@ -164,10 +163,10 @@ func (s *tokenService) ValidateAccessToken(accessToken string) (*models.UserDto,
 
 // TODO: review 3 methods below
 
-func (s *tokenService) SaveToken(ctx context.Context, refreshToken, userId, clientId string) (string, error) {
+func (s *tokenService) SaveToken(ctx context.Context, refreshToken, userId, clientId, tokenId string) (string, error) {
 	op := "tokenService.SaveToken"
 	token := models.Token{
-		Id:           xid.New().String(),
+		Id:           tokenId,
 		RefreshToken: refreshToken,
 		UserId:       userId,
 		ClientId:     clientId,
