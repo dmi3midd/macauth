@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"macauth/internal/config"
@@ -9,12 +10,14 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/rs/xid"
 )
 
 var (
 	ErrUnexpectedSigningMethod = errors.New("unexpected signing method")
 	ErrInvalidToken            = errors.New("invalid token")
 	ErrSubjectAndIDNotFound    = errors.New("subject and id not found")
+	ErrTokenNotFound           = errors.New("token not found")
 )
 
 type TokenService interface {
@@ -32,6 +35,14 @@ type TokenService interface {
 	// It returns ErrInvalidToken if the token is invalid.
 	// It returns ErrSubjectAndIDNotFound if subject or token ID are not found in claims.
 	ValidateAccessToken(refreshToken string) (*models.UserDto, string, error)
+	// SaveToken creates refresh token for the user.
+	SaveToken(ctx context.Context, refreshToken, userId, clientId string) (string, error)
+	// RemoveToken removes refresh token.
+	// It returns ErrTokenNotFound if no token are found.
+	RemoveToken(ctx context.Context, id string) error
+	// FindToken finds and returns a Token entity by its refresh token string.
+	// It returns ErrTokenNotFound if no token are found.
+	FindToken(ctx context.Context, id string) (*models.Token, error)
 }
 
 type tokenService struct {
@@ -149,4 +160,47 @@ func (s *tokenService) ValidateAccessToken(accessToken string) (*models.UserDto,
 		Username: claims.Username,
 		Email:    claims.Email,
 	}, tokenId, nil
+}
+
+// TODO: review 3 methods below
+
+func (s *tokenService) SaveToken(ctx context.Context, refreshToken, userId, clientId string) (string, error) {
+	op := "tokenService.SaveToken"
+	token := models.Token{
+		Id:           xid.New().String(),
+		RefreshToken: refreshToken,
+		UserId:       userId,
+		ClientId:     clientId,
+	}
+	id, err := s.tokenStore.Create(ctx, &token)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+	return id, nil
+}
+
+func (s *tokenService) RemoveToken(ctx context.Context, id string) error {
+	op := "tokenService.RemoveToken"
+	if _, err := s.tokenStore.GetById(ctx, id); err != nil {
+		if errors.Is(err, repositories.ErrTokenNotFound) {
+			return fmt.Errorf("%s: %w", op, ErrTokenNotFound)
+		}
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if err := s.tokenStore.DeleteById(ctx, id); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (s *tokenService) FindToken(ctx context.Context, id string) (*models.Token, error) {
+	op := "tokenService.FindToken"
+	token, err := s.tokenStore.GetById(ctx, id)
+	if err != nil {
+		if errors.Is(err, repositories.ErrTokenNotFound) {
+			return nil, fmt.Errorf("%s: %w", op, ErrTokenNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return token, nil
 }
