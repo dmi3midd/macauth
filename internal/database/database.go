@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +15,12 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pressly/goose/v3"
+)
+
+var (
+	OperationErrOpenDB     = "failed to open database"
+	OperationErrSetDialect = "failed to set dialect"
+	OperationErrUpMigr     = "failed to up migrations"
 )
 
 // Service represents a service that interacts with a database.
@@ -46,16 +52,16 @@ func New(cfg *config.Database) (DBService, error) {
 
 	db, err := sqlx.Open("sqlite3", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return nil, fmt.Errorf("%s: %w", OperationErrOpenDB, err)
 	}
 
 	goose.SetBaseFS(migrations.FS)
 
 	if err := goose.SetDialect("sqlite3"); err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("%s: %w", OperationErrSetDialect, err)
 	}
 	if err := goose.Up(db.DB, "."); err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("%s: %w", OperationErrUpMigr, err)
 	}
 
 	return &dbService{
@@ -119,7 +125,10 @@ func (s *dbService) Health() map[string]string {
 // If the connection is successfully closed, it returns nil.
 // If an error occurs while closing the connection, it returns the error.
 func (s *dbService) Close() error {
-	log.Printf("Disconnected from database: %s", s.dbUrl)
+	slog.Info(
+		"Disconnected from database: %s",
+		slog.String("url", s.dbUrl),
+	)
 	return s.db.Close()
 }
 
