@@ -26,6 +26,12 @@ type TokenService interface {
 	// It returns ErrInvalidToken if the token is invalid.
 	// It returns ErrSubjectAndIDNotFound if subject or token ID are not found in claims.
 	ValidateRefreshToken(refreshToken string) (string, string, error)
+	// ValidateAccessToken validates access token and returns userDto and token id.
+	// It returns (nil, "", error) if validation go wrong.
+	// It returns ErrUnexpectedSigningMethod if the token uses an unexpected signing method.
+	// It returns ErrInvalidToken if the token is invalid.
+	// It returns ErrSubjectAndIDNotFound if subject or token ID are not found in claims.
+	ValidateAccessToken(refreshToken string) (*models.UserDto, string, error)
 }
 
 type tokenService struct {
@@ -111,4 +117,36 @@ func (s *tokenService) ValidateRefreshToken(refreshToken string) (string, string
 	}
 
 	return tokenId, userId, nil
+}
+
+func (s *tokenService) ValidateAccessToken(accessToken string) (*models.UserDto, string, error) {
+	op := "tokenService.ValidateAccessToken"
+	claims := &models.AccessClaims{}
+	token, err := jwt.ParseWithClaims(accessToken, claims, func(token *jwt.Token) (any, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("%s: %w %v", op, ErrUnexpectedSigningMethod, token.Header["alg"])
+		}
+		return s.keys.PublicKey, nil
+	})
+
+	if err != nil {
+		return nil, "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	if !token.Valid {
+		return nil, "", fmt.Errorf("%s: %w", op, ErrInvalidToken)
+	}
+
+	userId := claims.Subject
+	tokenId := claims.ID
+
+	if userId == "" || tokenId == "" {
+		return nil, "", fmt.Errorf("%s: %w", op, ErrSubjectAndIDNotFound)
+	}
+
+	return &models.UserDto{
+		UserId:   userId,
+		Username: claims.Username,
+		Email:    claims.Email,
+	}, tokenId, nil
 }
