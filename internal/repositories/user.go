@@ -22,9 +22,9 @@ type UserRepository interface {
 	// It returns ErrUserNotFound if no user are found.
 	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	// Create creates a User entity and returns it.
-	Create(ctx context.Context, user *models.User) (*string, error)
+	Create(ctx context.Context, user *models.User) (string, error)
 	// Update updates the User entity.
-	Update(ctx context.Context, user *models.User) (*string, error)
+	Update(ctx context.Context, user *models.User) (string, error)
 	// Delete removes the User entity.
 	Delete(ctx context.Context, userId string) error
 }
@@ -71,19 +71,19 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 	return &user, nil
 }
 
-func (r *userRepository) Create(ctx context.Context, user *models.User) (*string, error) {
+func (r *userRepository) Create(ctx context.Context, user *models.User) (string, error) {
 	op := "userRepository.Create"
 	query := `INSERT INTO users 
 		   (id, username, email, hashed_password, created_at, updated_at)
 	VALUES (:id, :username, :email, :hashed_password, :created_at, :updated_at)
 	`
 	if _, err := r.db.NamedExecContext(ctx, query, user); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
-	return &user.Id, nil
+	return user.Id, nil
 }
 
-func (r *userRepository) Update(ctx context.Context, user *models.User) (*string, error) {
+func (r *userRepository) Update(ctx context.Context, user *models.User) (string, error) {
 	op := "userRepository.Update"
 	query := `UPDATE users 
 	SET username = :username, email = :email, hashed_password = :hashed_password, updated_at = :updated_at 
@@ -91,9 +91,9 @@ func (r *userRepository) Update(ctx context.Context, user *models.User) (*string
 	`
 	_, err := r.db.NamedExecContext(ctx, query, user)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
-	return &user.Id, nil
+	return user.Id, nil
 }
 
 func (r *userRepository) Delete(ctx context.Context, userId string) error {

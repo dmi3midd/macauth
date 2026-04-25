@@ -22,7 +22,7 @@ type ClientRepository interface {
 	// It returns ErrClientNotFound if no client are found.
 	GetByName(ctx context.Context, name string) (*models.Client, error)
 	// Create creates a Client entity and returns its id.
-	Create(ctx context.Context, client *models.Client) (*string, error)
+	Create(ctx context.Context, client *models.Client) (string, error)
 	// Delete removes the Client entity from db.
 	Delete(ctx context.Context, clientId string) error
 }
@@ -69,16 +69,16 @@ func (r *clientReposiroty) GetByName(ctx context.Context, name string) (*models.
 	return &client, nil
 }
 
-func (r *clientReposiroty) Create(ctx context.Context, client *models.Client) (*string, error) {
+func (r *clientReposiroty) Create(ctx context.Context, client *models.Client) (string, error) {
 	op := "clientRepository.Create"
 	query := `INSERT INTO clients
 		   (id, name, hashed_secret, created_at, updated_at)
 	VALUES (:id, :name, :hashed_secret, :created_at, :updated_at)
 	`
 	if _, err := r.db.NamedExecContext(ctx, query, client); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
-	return &client.Id, nil
+	return client.Id, nil
 }
 
 func (r *clientReposiroty) Delete(ctx context.Context, clientId string) error {

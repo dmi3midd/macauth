@@ -22,11 +22,11 @@ type TokenRepository interface {
 	// It returns ErrTokenNotFound if no token are found.
 	GetByToken(ctx context.Context, refreshToken string) (*models.Token, error)
 	// Create creates a Token entity.
-	Create(ctx context.Context, token *models.Token) (*string, error)
+	Create(ctx context.Context, token *models.Token) (string, error)
 	// Update updates refresh token in the Token entity.
-	Update(ctx context.Context, id, refreshToken string) (*string, error)
+	Update(ctx context.Context, id, refreshToken string) (string, error)
 	// DeleteById removes the Token entity by its id.
-	DeleteById(ctx context.Context, refreshToken string) error
+	DeleteById(ctx context.Context, id string) error
 	// DeleteByToken removes the Token entity by its refresh token.
 	DeleteByToken(ctx context.Context, refreshToken string) error
 }
@@ -73,25 +73,25 @@ func (r *tokenRepository) GetByToken(ctx context.Context, refreshToken string) (
 	return &token, nil
 }
 
-func (r *tokenRepository) Create(ctx context.Context, token *models.Token) (*string, error) {
+func (r *tokenRepository) Create(ctx context.Context, token *models.Token) (string, error) {
 	op := "tokenRepository.Create"
 	query := `INSERT INTO tokens (id, refresh_token, user_id, client_id)
 			  VALUES (:id, :refresh_token, :user_id, :client_id)`
 	if _, err := r.db.NamedExecContext(ctx, query, token); err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
-	return &token.Id, nil
+	return token.Id, nil
 }
 
-func (r *tokenRepository) Update(ctx context.Context, id, refreshToken string) (*string, error) {
+func (r *tokenRepository) Update(ctx context.Context, id, refreshToken string) (string, error) {
 	op := "tokenRepository.Update"
 	query := `UPDATE tokens SET refresh_token = $1 
 			WHERE id = $2`
 	_, err := r.db.ExecContext(ctx, query, refreshToken, id)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
-	return &id, nil
+	return id, nil
 }
 
 func (r *tokenRepository) DeleteById(ctx context.Context, id string) error {

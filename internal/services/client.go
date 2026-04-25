@@ -20,7 +20,7 @@ var (
 type ClientService interface {
 	// Link registrate a new Client.
 	// It returns ErrClientAlreadyExist if the client exist ith the name.
-	Link(ctx context.Context, name, secret string) (*string, error)
+	Link(ctx context.Context, name, secret string) (string, error)
 	// Unlink removes the client from the Macauth.
 	// Also client's sessions will be removed.
 	// It returns ErrClientNotFound if no client are found.
@@ -37,23 +37,23 @@ func NewClientService(clientStore repositories.ClientRepository) ClientService {
 	}
 }
 
-func (s *clientService) Link(ctx context.Context, name, secret string) (*string, error) {
+func (s *clientService) Link(ctx context.Context, name, secret string) (string, error) {
 	op := "clientService.Link"
 
 	candidate, err := s.clientStore.GetByName(ctx, name)
 	if err != nil {
 		if !errors.Is(err, repositories.ErrClientNotFound) {
-			return nil, fmt.Errorf("%s: %w", op, err)
+			return "", fmt.Errorf("%s: %w", op, err)
 		}
 	}
 	if candidate != nil {
-		return nil, fmt.Errorf("%s: %w", op, ErrClientAlreadyExist)
+		return "", fmt.Errorf("%s: %w", op, ErrClientAlreadyExist)
 	}
 
 	id := xid.New().String()
 	hashedSecret, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 	clientId, err := s.clientStore.Create(ctx, &models.Client{
 		Id:           id,
@@ -63,7 +63,7 @@ func (s *clientService) Link(ctx context.Context, name, secret string) (*string,
 		UpdatedAt:    time.Now(),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	return clientId, nil
