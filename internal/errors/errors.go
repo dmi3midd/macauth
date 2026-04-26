@@ -32,6 +32,31 @@ func ClientNotFound(sysErr error) APIError {
 	return NewAPIError(
 		404,
 		sysErr.Error(),
-		"You try to unlink non-existing client",
+		"Client not found",
+	)
+}
+
+// UserAlreadyExist creates a 400 Bad Request error when user already exist with the provided email.
+func UserAlreadyExist(sysErr error) APIError {
+	return NewAPIError(
+		400,
+		sysErr.Error(),
+		"User already exist with this email",
+	)
+}
+
+func UserNotFound(sysErr error) APIError {
+	return NewAPIError(
+		404,
+		sysErr.Error(),
+		"User not found",
+	)
+}
+
+func InvalidPassword(sysErr error) APIError {
+	return NewAPIError(
+		400,
+		sysErr.Error(),
+		"Invalid password",
 	)
 }
