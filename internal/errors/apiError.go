@@ -53,7 +53,12 @@ func NewBadRequestError(sysErr error, userMsg string) APIError {
 	return newAPIError(400, sysErr, userMsg)
 }
 
-// NewUnauthorized creates 401 error
-func NewUnauthorized(sysErr error, userMsg string) APIError {
+// NewUnauthorizedError creates 401 error
+func NewUnauthorizedError(sysErr error, userMsg string) APIError {
 	return newAPIError(401, sysErr, userMsg)
+}
+
+// NewForbiddenError creates 403 error
+func NewForbiddenError(sysErr error, userMsg string) APIError {
+	return newAPIError(403, sysErr, userMsg)
 }

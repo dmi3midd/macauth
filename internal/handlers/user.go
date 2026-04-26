@@ -110,7 +110,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) error {
 	cookie, err := r.Cookie("refreshToken")
 	if err != nil {
-		return errs.NewUnauthorized(err, "Unauthorized user")
+		return errs.NewUnauthorizedError(err, "Unauthorized user")
 	}
 	refreshToken := cookie.Value
 	ctx := r.Context()
@@ -136,7 +136,7 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) error {
 func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
 	cookie, err := r.Cookie("refreshToken")
 	if err != nil {
-		return errs.NewUnauthorized(err, "Unauthorized user")
+		return errs.NewUnauthorizedError(err, "Unauthorized user")
 	}
 	refreshToken := cookie.Value
 
