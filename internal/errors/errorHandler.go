@@ -8,11 +8,13 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-type ErrorHandler func(w http.ResponseWriter, r *http.Request) error
+type AppHandler func(w http.ResponseWriter, r *http.Request) error
 
-func (h ErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if err := h(w, r); err != nil {
-		HandleError(w, r, err)
+func ErrorHandler(fn AppHandler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := fn(w, r); err != nil {
+			HandleError(w, r, err)
+		}
 	}
 }
 
