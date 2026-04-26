@@ -1,14 +1,14 @@
 echo -e "Macauth initialization..."
 
 # 1. Directories
-mkdir -p keys storage
+mkdir -p storage && mkdir -p storage/keys
 
 # 2. API key
-# if [ ! -f .env ]; then
-#     echo -e "Waiting for API_KEY..."
-#     API_KEY=$(openssl rand -hex 32)
-#     echo "API_KEY=$API_KEY" > .env
-# fi
+if [ ! -f .env ] || ! grep -q "^API_KEY=" .env; then
+    echo -e "Waiting for API_KEY..."
+    API_KEY=$(openssl rand -hex 32)
+    echo "API_KEY=$API_KEY" >> .env
+fi
 
 # 3. Config file
 if [ ! -f config.yaml ]; then
@@ -21,14 +21,14 @@ if [ ! -f config.yaml ]; then
 fi
 
 # 4. RSA keys
-if [ ! -f keys/private.pem ] || [ ! -f keys/public.pem ]; then
+if [ ! -f storage/keys/private.pem ] || [ ! -f storage/keys/public.pem ]; then
     echo -e "Waiting for RSA keys..."
-    openssl genpkey -algorithm RSA -out keys/private.pem -pkeyopt rsa_keygen_bits:2048 2>/dev/null
-    openssl rsa -pubout -in keys/private.pem -out keys/public.pem 2>/dev/null
+    openssl genpkey -algorithm RSA -out storage/keys/private.pem -pkeyopt rsa_keygen_bits:2048 2>/dev/null
+    openssl rsa -pubout -in storage/keys/private.pem -out storage/keys/public.pem 2>/dev/null
 fi
 
 # 5. Database and log files
-if [ ! -f storage/db.sql ]; then
+if [ ! -f storage/macauth.db ]; then
     echo -e "Waiting for database and log files..."
     touch storage/macauth.db
     touch storage/macauth.log

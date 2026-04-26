@@ -6,7 +6,7 @@ httpServer:
   readTimeout: 10s
   writeTimeout: 20s
 pem:
-  privPath: ./keys/private.pem
-  pubPath: ./keys/public.pem
+  privPath: ./storage/keys/private.pem
+  pubPath: ./storage/keys/public.pem
 log:
   logPath: ./storage/macauth.log
