@@ -11,21 +11,21 @@ var (
 	ErrInvalidApiKey = errors.New("invalid api key")
 )
 
-type ApiKeyValidationMw struct {
-	ApiKey string
+type ApiKeyValidator struct {
+	apiKey string
 }
 
-func NewApiKeyValidationMw(apiKey string) *ApiKeyValidationMw {
-	return &ApiKeyValidationMw{
-		ApiKey: apiKey,
+func NewApiKeyValidator(apiKey string) *ApiKeyValidator {
+	return &ApiKeyValidator{
+		apiKey: apiKey,
 	}
 }
 
-func (m *ApiKeyValidationMw) ApiKeyValidate() func(http.Handler) http.Handler {
+func (m *ApiKeyValidator) Validate() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			key := r.Header.Get("x-api-key")
-			if key != m.ApiKey {
+			if key != m.apiKey {
 				apiErr := errs.NewForbiddenError(
 					ErrInvalidApiKey,
 					"Invalid API key",

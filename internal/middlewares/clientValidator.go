@@ -16,17 +16,17 @@ var (
 	ErrInvalidSecret     = errors.New("invalid client secret")
 )
 
-type SecretValidationMw struct {
+type ClientValidator struct {
 	clientStore repositories.ClientRepository
 }
 
-func NewSecretValidationMw(clientStore repositories.ClientRepository) *SecretValidationMw {
-	return &SecretValidationMw{
+func NewClientValidator(clientStore repositories.ClientRepository) *ClientValidator {
+	return &ClientValidator{
 		clientStore: clientStore,
 	}
 }
 
-func (m *SecretValidationMw) SecretValidate() func(http.Handler) http.Handler {
+func (m *ClientValidator) Validate() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			clientSecret := r.Header.Get("x-client-secret")
