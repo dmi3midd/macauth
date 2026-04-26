@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	customerrs "macauth/internal/errors"
+	errs "macauth/internal/errors"
 	"macauth/internal/services"
 	"net/http"
 
@@ -32,7 +32,7 @@ type LinkRequest struct {
 func (h *ClientHandler) Link(w http.ResponseWriter, r *http.Request) error {
 	var reqBody LinkRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		return customerrs.InternalServerError(err)
+		return errs.InternalServerError(err)
 	}
 	defer r.Body.Close()
 
@@ -40,9 +40,9 @@ func (h *ClientHandler) Link(w http.ResponseWriter, r *http.Request) error {
 	clientId, err := h.clientService.Link(ctx, reqBody.Name, reqBody.Secret)
 	if err != nil {
 		if errors.Is(err, services.ErrClientAlreadyExist) {
-			return customerrs.ClientAlreadyExist(err)
+			return errs.NewConflictError(err, "Client already exist with this name")
 		}
-		return customerrs.InternalServerError(err)
+		return errs.InternalServerError(err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -55,15 +55,15 @@ func (h *ClientHandler) Link(w http.ResponseWriter, r *http.Request) error {
 func (h *ClientHandler) Unlink(w http.ResponseWriter, r *http.Request) error {
 	clientId := chi.URLParam(r, "clientId")
 	if clientId == "" {
-		return customerrs.ClientIdIsRequired(ErrEmptyClientId)
+		return errs.NewBadRequestError(ErrEmptyClientId, "Client id is not provided")
 	}
 
 	ctx := r.Context()
 	if err := h.clientService.Unlink(ctx, clientId); err != nil {
 		if errors.Is(err, services.ErrClientNotFound) {
-			return customerrs.ClientNotFound(err)
+			return errs.NewNotFoundError(err, "Client does not exist")
 		}
-		return customerrs.InternalServerError(err)
+		return errs.InternalServerError(err)
 	}
 	w.Header().Del("x-client-id")
 	w.Header().Set("Content-Type", "application/json")

@@ -1,4 +1,4 @@
-package customerrs
+package errors
 
 import (
 	"fmt"
@@ -19,12 +19,36 @@ func (e APIError) Error() string {
 	return fmt.Sprintf("%v %v %v: %v", e.Timestamp, e.Id, e.Code, e.Message)
 }
 
-func NewAPIError(code int, message string, userMessage string) APIError {
+func newAPIError(code int, sysErr error, userMsg string) APIError {
 	return APIError{
 		Code:        code,
-		Message:     message,
-		UserMessage: userMessage,
+		Message:     sysErr.Error(),
+		UserMessage: userMsg,
 		Id:          xid.New().String(),
 		Timestamp:   time.Now(),
 	}
+}
+
+func CustomError(code int, sysErr error, userMsg string) APIError {
+	return newAPIError(code, sysErr, userMsg)
+}
+
+// InternalServerError creates 500 error
+func InternalServerError(sysErr error) APIError {
+	return newAPIError(500, sysErr, "Internal server error")
+}
+
+// NewConflictError creates 409 error
+func NewConflictError(sysErr error, userMsg string) APIError {
+	return newAPIError(409, sysErr, userMsg)
+}
+
+// NewNotFoundError creates 404 error
+func NewNotFoundError(sysErr error, userMsg string) APIError {
+	return newAPIError(404, sysErr, userMsg)
+}
+
+// NewBadRequestError creates 400 error
+func NewBadRequestError(sysErr error, userMsg string) APIError {
+	return newAPIError(400, sysErr, userMsg)
 }

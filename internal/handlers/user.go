@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	customerrs "macauth/internal/errors"
+	errs "macauth/internal/errors"
 	"macauth/internal/models"
 	"macauth/internal/services"
 	"net/http"
@@ -28,7 +28,7 @@ type RegistrationRequest struct {
 func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error {
 	var reqBody RegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		return customerrs.InternalServerError(err)
+		return errs.InternalServerError(err)
 	}
 	defer r.Body.Close()
 
@@ -43,9 +43,9 @@ func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error
 		clientId,
 	); err != nil {
 		if errors.Is(err, services.ErrUserAlreadyExist) {
-			return customerrs.UserAlreadyExist(err)
+			return errs.NewConflictError(err, "User already exist with this email")
 		}
-		return customerrs.InternalServerError(err)
+		return errs.InternalServerError(err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -62,7 +62,7 @@ type LoginRequest struct {
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	var reqBody LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		return customerrs.InternalServerError(err)
+		return errs.InternalServerError(err)
 	}
 	defer r.Body.Close()
 
@@ -72,12 +72,12 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	userData, err := h.userService.Login(ctx, reqBody.Email, reqBody.Password, clientId)
 	if err != nil {
 		if errors.Is(err, services.ErrUserNotFound) {
-			return customerrs.UserNotFound(err)
+			return errs.NewNotFoundError(err, "User does not exist with this email")
 		}
 		if errors.Is(err, services.ErrInvalidPassword) {
-			return customerrs.InvalidPassword(err)
+			return errs.NewBadRequestError(err, "Invalid password")
 		}
-		return customerrs.InternalServerError(err)
+		return errs.InternalServerError(err)
 	}
 
 	http.SetCookie(w, &http.Cookie{
@@ -101,7 +101,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		return customerrs.InternalServerError(err)
+		return errs.InternalServerError(err)
 	}
 
 	return nil
