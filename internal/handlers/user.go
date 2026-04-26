@@ -106,3 +106,74 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 
 	return nil
 }
+
+func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) error {
+	cookie, err := r.Cookie("refreshToken")
+	if err != nil {
+		return errs.NewUnauthorized(err, "Unauthorized user")
+	}
+	refreshToken := cookie.Value
+	ctx := r.Context()
+	if err := h.userService.Logout(ctx, refreshToken); err != nil {
+		return errs.InternalServerError(err)
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refreshToken",
+		Value:    "",
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+		Secure:   true,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	return nil
+}
+
+func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
+	cookie, err := r.Cookie("refreshToken")
+	if err != nil {
+		return errs.NewUnauthorized(err, "Unauthorized user")
+	}
+	refreshToken := cookie.Value
+
+	clientId := r.Header.Get("x-client-id")
+
+	ctx := r.Context()
+	userData, err := h.userService.Refresh(ctx, refreshToken, clientId)
+	if err != nil {
+		if errors.Is(err, services.ErrUserNotFound) {
+			return errs.NewNotFoundError(err, "User does not exist with")
+		}
+		return errs.InternalServerError(err)
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refreshToken",
+		Value:    userData.Tokens.RefreshToken,
+		MaxAge:   14 * 24 * 60 * 60,
+		HttpOnly: true,
+		Path:     "/",
+		Secure:   true,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	response := struct {
+		User        models.UserDto `json:"user"`
+		AccessToken string         `json:"accessToken"`
+	}{
+		User:        userData.User,
+		AccessToken: userData.Tokens.AccessToken,
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		return errs.InternalServerError(err)
+	}
+
+	return nil
+}

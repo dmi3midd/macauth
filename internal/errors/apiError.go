@@ -52,3 +52,8 @@ func NewNotFoundError(sysErr error, userMsg string) APIError {
 func NewBadRequestError(sysErr error, userMsg string) APIError {
 	return newAPIError(400, sysErr, userMsg)
 }
+
+// NewUnauthorized creates 401 error
+func NewUnauthorized(sysErr error, userMsg string) APIError {
+	return newAPIError(401, sysErr, userMsg)
+}
