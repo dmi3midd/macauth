@@ -14,7 +14,8 @@ import (
 
 var (
 	ErrUnexpectedSigningMethod = errors.New("unexpected signing method")
-	ErrInvalidToken            = errors.New("invalid token")
+	ErrInvalidRefreshToken     = errors.New("invalid refresh token")
+	ErrInvalidAccessToken      = errors.New("invalid access token")
 	ErrSubjectAndIDNotFound    = errors.New("subject and id not found")
 	ErrTokenNotFound           = errors.New("token not found")
 )
@@ -25,13 +26,13 @@ type TokenService interface {
 	// ValidateRefreshToken validates refresh token and returns token and user id (tokenId, userId, error).
 	// It returns ("", "", error) if validation go wrong.
 	// It returns ErrUnexpectedSigningMethod if the token uses an unexpected signing method.
-	// It returns ErrInvalidToken if the token is invalid.
+	// It returns ErrInvalidRefreshToken if the token is invalid.
 	// It returns ErrSubjectAndIDNotFound if subject or token ID are not found in claims.
 	ValidateRefreshToken(refreshToken string) (string, string, error)
 	// ValidateAccessToken validates access token and returns userDto and token id.
 	// It returns (nil, "", error) if validation go wrong.
 	// It returns ErrUnexpectedSigningMethod if the token uses an unexpected signing method.
-	// It returns ErrInvalidToken if the token is invalid.
+	// It returns ErrInvalidAccessToken if the token is invalid.
 	// It returns ErrSubjectAndIDNotFound if subject or token ID are not found in claims.
 	ValidateAccessToken(refreshToken string) (*models.UserDto, string, error)
 	// SaveToken creates refresh token for the user.
@@ -116,7 +117,7 @@ func (s *tokenService) ValidateRefreshToken(refreshToken string) (string, string
 	}
 
 	if !token.Valid {
-		return "", "", fmt.Errorf("%s: %w", op, ErrInvalidToken)
+		return "", "", fmt.Errorf("%s: %w", op, ErrInvalidRefreshToken)
 	}
 
 	userId := claims.Subject
@@ -144,7 +145,7 @@ func (s *tokenService) ValidateAccessToken(accessToken string) (*models.UserDto,
 	}
 
 	if !token.Valid {
-		return nil, "", fmt.Errorf("%s: %w", op, ErrInvalidToken)
+		return nil, "", fmt.Errorf("%s: %w", op, ErrInvalidAccessToken)
 	}
 
 	userId := claims.Subject

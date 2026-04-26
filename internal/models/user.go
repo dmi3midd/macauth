@@ -27,6 +27,6 @@ func NewUserDto(user *User) *UserDto {
 
 type AuthDto struct {
 	ClientId string
-	UserDto
-	TokensPair
+	User     UserDto
+	Tokens   TokensPair
 }

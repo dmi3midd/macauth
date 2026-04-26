@@ -13,10 +13,9 @@ import (
 )
 
 var (
-	ErrUserAlreadyExist    error = errors.New("user already exist")
-	ErrUserNotFound        error = errors.New("user not found")
-	ErrInvalidPassword     error = errors.New("invalid password")
-	ErrInvalidRefreshToken error = errors.New("invalid refresh token")
+	ErrUserAlreadyExist = errors.New("user already exist")
+	ErrUserNotFound     = errors.New("user not found")
+	ErrInvalidPassword  = errors.New("invalid password")
 )
 
 type UserService interface {
@@ -28,7 +27,12 @@ type UserService interface {
 	// It returns ErrInvalidPassword if the password is invalid.
 	Login(ctx context.Context, email, password, clientId string) (*models.AuthDto, error)
 	// Logout performs logout user.
-	Logout(ctx context.Context, tokenId string) error
+	// Look at TokenService.ValidateRefreshToken for other errors.
+	Logout(ctx context.Context, refreshToken string) error
+	// Refresh performs refreshing access and refresh tokens.
+	// It returns ErrUserNotFound if no user are found.
+	// Look at TokenService.ValidateRefreshToken for other errors.
+	Refresh(ctx context.Context, refreshToken, clientId string) (*models.AuthDto, error)
 }
 
 type userService struct {
@@ -103,16 +107,19 @@ func (s *userService) Login(ctx context.Context, email, password, clientId strin
 	}
 
 	return &models.AuthDto{
-		ClientId:   clientId,
-		UserDto:    *userDto,
-		TokensPair: *tokens,
+		ClientId: clientId,
+		User:     *userDto,
+		Tokens:   *tokens,
 	}, nil
 }
 
-func (s *userService) Logout(ctx context.Context, tokenId string) error {
-	op := "user,service-Logout"
-	err := s.tokenService.RemoveToken(ctx, tokenId)
+func (s *userService) Logout(ctx context.Context, refreshToken string) error {
+	op := "user.service-Logout"
+	tokenId, _, err := s.tokenService.ValidateRefreshToken(refreshToken)
 	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if err := s.tokenService.RemoveToken(ctx, tokenId); err != nil {
 		if errors.Is(err, ErrTokenNotFound) {
 			return nil
 		}
@@ -120,8 +127,6 @@ func (s *userService) Logout(ctx context.Context, tokenId string) error {
 	}
 	return nil
 }
-
-// TODO: Refactor error handling
 
 func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string) (*models.AuthDto, error) {
 	op := "user.service-Refresh"
@@ -157,9 +162,13 @@ func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
+	if _, err := s.tokenService.SaveToken(ctx, tokens.RefreshToken, userId, clientId, tokenId); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
 	return &models.AuthDto{
-		ClientId:   clientId,
-		UserDto:    *userDto,
-		TokensPair: *tokens,
+		ClientId: clientId,
+		User:     *userDto,
+		Tokens:   *tokens,
 	}, nil
 }
