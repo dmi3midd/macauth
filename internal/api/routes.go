@@ -1,12 +1,16 @@
 package api
 
 import (
+	"encoding/json"
+	"fmt"
 	errs "macauth/internal/errors"
 	"macauth/internal/handlers"
 	"macauth/internal/middlewares"
 	"macauth/internal/repositories"
 	"macauth/internal/services"
+	"net/http"
 	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -55,6 +59,13 @@ func (s *Server) RegisterRoutes() chi.Mux {
 		r.Use(apikeyValidator.Validate())
 		r.Post("/", errs.ErrorHandler(clientHandler.Link))
 		r.Delete("/{clientId}", errs.ErrorHandler(clientHandler.Unlink))
+		r.Get("/public-key", errs.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
+			key := tokenService.GetPublicKey()
+			if err := json.NewEncoder(w).Encode(key); err != nil {
+				return errs.InternalServerError(err)
+			}
+			return nil
+		}))
 	})
 
 	mainRouter.Group(func(r chi.Router) {
@@ -63,6 +74,27 @@ func (s *Server) RegisterRoutes() chi.Mux {
 		r.Post("/login", errs.ErrorHandler(userHandler.Login))
 		r.Delete("/logout", errs.ErrorHandler(userHandler.Logout))
 		r.Put("/refresh", errs.ErrorHandler(userHandler.Refresh))
+		r.Get("/validate", errs.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
+			authHeader := r.Header.Get("Authorization")
+			token := ""
+			if after, ok := strings.CutPrefix(authHeader, "Bearer "); ok {
+				token = after
+			}
+			if token == "" {
+				return errs.NewUnauthorizedError(
+					fmt.Errorf("Invalid or empty Authorization header"),
+					"Invalid or empty Authorization header",
+				)
+			}
+			userData, _, err := tokenService.ValidateAccessToken(token)
+			if err != nil {
+				return errs.NewUnauthorizedError(err, "Invalid access token")
+			}
+			if err := json.NewEncoder(w).Encode(userData); err != nil {
+				return errs.InternalServerError(err)
+			}
+			return nil
+		}))
 	})
 
 	return *mainRouter

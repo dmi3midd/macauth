@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"macauth/internal/config"
@@ -29,12 +30,12 @@ type TokenService interface {
 	// It returns ErrInvalidRefreshToken if the token is invalid.
 	// It returns ErrSubjectAndIDNotFound if subject or token ID are not found in claims.
 	ValidateRefreshToken(refreshToken string) (string, string, error)
-	// ValidateAccessToken validates access token and returns userDto and token id.
+	// ValidateAccessToken validates access token and returns userDto and token id (userDto, tokenId, error).
 	// It returns (nil, "", error) if validation go wrong.
 	// It returns ErrUnexpectedSigningMethod if the token uses an unexpected signing method.
 	// It returns ErrInvalidAccessToken if the token is invalid.
 	// It returns ErrSubjectAndIDNotFound if subject or token ID are not found in claims.
-	ValidateAccessToken(refreshToken string) (*models.UserDto, string, error)
+	ValidateAccessToken(accessToken string) (*models.UserDto, string, error)
 	// SaveToken creates refresh token for the user.
 	SaveToken(ctx context.Context, refreshToken, userId, clientId, tokenId string) (string, error)
 	// RemoveToken removes refresh token.
@@ -43,6 +44,8 @@ type TokenService interface {
 	// FindToken finds and returns a Token entity by its refresh token string.
 	// It returns ErrTokenNotFound if no token are found.
 	FindToken(ctx context.Context, id string) (*models.Token, error)
+	// GetPublicKey returns public rsa keys
+	GetPublicKey() rsa.PublicKey
 }
 
 type tokenService struct {
@@ -203,4 +206,8 @@ func (s *tokenService) FindToken(ctx context.Context, id string) (*models.Token,
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return token, nil
+}
+
+func (s *tokenService) GetPublicKey() rsa.PublicKey {
+	return *s.keys.PublicKey
 }
