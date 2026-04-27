@@ -123,7 +123,7 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) error {
 		Value:    "",
 		MaxAge:   -1,
 		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
+		Path:     "/",
 		Secure:   true,
 	})
 

@@ -15,6 +15,12 @@ type APIError struct {
 	Timestamp   time.Time `json:"timestamp"`
 }
 
+type UserError struct {
+	Code      int       `json:"code"`
+	Message   string    `json:"message"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
 func (e APIError) Error() string {
 	return fmt.Sprintf("%v %v %v: %v", e.Timestamp, e.Id, e.Code, e.Message)
 }

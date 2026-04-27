@@ -17,7 +17,7 @@ import (
 	"github.com/go-chi/cors"
 )
 
-func (s *Server) RegisterRoutes() chi.Mux {
+func (s *Server) RegisterRoutes() *chi.Mux {
 	// env vars
 	apiKey, ok := os.LookupEnv("API_KEY")
 	if !ok {
@@ -99,5 +99,5 @@ func (s *Server) RegisterRoutes() chi.Mux {
 		})
 	})
 
-	return *mainRouter
+	return mainRouter
 }

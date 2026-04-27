@@ -23,7 +23,7 @@ func NewServer(cfg *config.Config, db database.DBService) *http.Server {
 	router := s.RegisterRoutes()
 	return &http.Server{
 		Addr:         cfg.HTTPServer.Address,
-		Handler:      &router,
+		Handler:      router,
 		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
 		ReadTimeout:  cfg.HTTPServer.ReadTimeout,
 		WriteTimeout: cfg.HTTPServer.WriteTimeout,

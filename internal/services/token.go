@@ -184,12 +184,6 @@ func (s *tokenService) SaveToken(ctx context.Context, refreshToken, userId, clie
 
 func (s *tokenService) RemoveToken(ctx context.Context, id string) error {
 	op := "tokenService.RemoveToken"
-	if _, err := s.tokenStore.GetById(ctx, id); err != nil {
-		if errors.Is(err, repositories.ErrTokenNotFound) {
-			return fmt.Errorf("%s: %w", op, ErrTokenNotFound)
-		}
-		return fmt.Errorf("%s: %w", op, err)
-	}
 	if err := s.tokenStore.DeleteById(ctx, id); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -28,7 +29,21 @@ func HandleError(w http.ResponseWriter, r *http.Request, err error) {
 			slog.String("request id", reqID),
 			slog.String("error", apiErr.Error()),
 		)
-		http.Error(w, apiErr.UserMessage, apiErr.Code)
+
+		userErr := UserError{
+			Code:      apiErr.Code,
+			Message:   apiErr.UserMessage,
+			Timestamp: apiErr.Timestamp,
+		}
+
+		bytesErr, err := json.Marshal(userErr)
+		if err != nil {
+			bytesErr = []byte("Internal server error")
+		}
+		w.Header().Set("Content-Type", "application/json")
+		http.Error(w,
+			string(bytesErr),
+			apiErr.Code)
 		return
 	}
 

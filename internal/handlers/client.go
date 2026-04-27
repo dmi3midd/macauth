@@ -65,7 +65,6 @@ func (h *ClientHandler) Unlink(w http.ResponseWriter, r *http.Request) error {
 		}
 		return errs.InternalServerError(err)
 	}
-	w.Header().Del("x-client-id")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
