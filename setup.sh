@@ -16,7 +16,7 @@ if [ ! -f config.yaml ]; then
     if [ -f config.example.yaml ]; then
         cp config.example.yaml config.yaml
     else
-        echo -e "There is no example file. Check GitHub repositrory: https://github.com/dmi3midd/macauth"
+        echo -e "There is no example file. Check GitHub repository: https://github.com/dmi3midd/macauth"
     fi
 fi
 

@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  macauth:
+    build: .
+    container_name: macauth-api
+    restart: unless-stopped
+    ports:
+      - "2800:2800"
+    env_file:
+      - .env
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./storage:/app/storage
+      - ./keys:/app/keys:ro
