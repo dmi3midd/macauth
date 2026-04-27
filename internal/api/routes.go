@@ -55,46 +55,48 @@ func (s *Server) RegisterRoutes() chi.Mux {
 	mainRouter.Use(middleware.RequestID)
 	mainRouter.Use(middleware.Recoverer)
 
-	mainRouter.Group(func(r chi.Router) {
-		r.Use(apikeyValidator.Validate())
-		r.Post("/", errs.ErrorHandler(clientHandler.Link))
-		r.Delete("/{clientId}", errs.ErrorHandler(clientHandler.Unlink))
-		r.Get("/public-key", errs.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
-			key := tokenService.GetPublicKey()
-			if err := json.NewEncoder(w).Encode(key); err != nil {
-				return errs.InternalServerError(err)
-			}
-			return nil
-		}))
-	})
+	mainRouter.Route("/macauth/api/v1", func(r chi.Router) {
+		r.Route("/client", func(r chi.Router) {
+			r.Use(apikeyValidator.Validate())
+			r.Post("/", errs.ErrorHandler(clientHandler.Link))
+			r.Delete("/{clientId}", errs.ErrorHandler(clientHandler.Unlink))
+			r.Get("/public-key", errs.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
+				key := tokenService.GetPublicKey()
+				if err := json.NewEncoder(w).Encode(key); err != nil {
+					return errs.InternalServerError(err)
+				}
+				return nil
+			}))
+		})
 
-	mainRouter.Group(func(r chi.Router) {
-		r.Use(clientValidator.Validate())
-		r.Post("/registration", errs.ErrorHandler(userHandler.Registration))
-		r.Post("/login", errs.ErrorHandler(userHandler.Login))
-		r.Delete("/logout", errs.ErrorHandler(userHandler.Logout))
-		r.Put("/refresh", errs.ErrorHandler(userHandler.Refresh))
-		r.Get("/validate", errs.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
-			authHeader := r.Header.Get("Authorization")
-			token := ""
-			if after, ok := strings.CutPrefix(authHeader, "Bearer "); ok {
-				token = after
-			}
-			if token == "" {
-				return errs.NewUnauthorizedError(
-					fmt.Errorf("Invalid or empty Authorization header"),
-					"Invalid or empty Authorization header",
-				)
-			}
-			userData, _, err := tokenService.ValidateAccessToken(token)
-			if err != nil {
-				return errs.NewUnauthorizedError(err, "Invalid access token")
-			}
-			if err := json.NewEncoder(w).Encode(userData); err != nil {
-				return errs.InternalServerError(err)
-			}
-			return nil
-		}))
+		r.Route("/user", func(r chi.Router) {
+			r.Use(clientValidator.Validate())
+			r.Post("/registration", errs.ErrorHandler(userHandler.Registration))
+			r.Post("/login", errs.ErrorHandler(userHandler.Login))
+			r.Delete("/logout", errs.ErrorHandler(userHandler.Logout))
+			r.Put("/refresh", errs.ErrorHandler(userHandler.Refresh))
+			r.Get("/validate", errs.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
+				authHeader := r.Header.Get("Authorization")
+				token := ""
+				if after, ok := strings.CutPrefix(authHeader, "Bearer "); ok {
+					token = after
+				}
+				if token == "" {
+					return errs.NewUnauthorizedError(
+						fmt.Errorf("Invalid or empty Authorization header"),
+						"Invalid or empty Authorization header",
+					)
+				}
+				userData, _, err := tokenService.ValidateAccessToken(token)
+				if err != nil {
+					return errs.NewUnauthorizedError(err, "Invalid access token")
+				}
+				if err := json.NewEncoder(w).Encode(userData); err != nil {
+					return errs.InternalServerError(err)
+				}
+				return nil
+			}))
+		})
 	})
 
 	return *mainRouter
