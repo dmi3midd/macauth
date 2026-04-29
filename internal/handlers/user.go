@@ -22,6 +22,7 @@ func NewUserHandler(userService services.UserService) *UserHandler {
 type RegistrationRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
+	IsAdmin  bool   `json:"isAdmin"`
 	Password string `json:"password"`
 }
 
@@ -41,6 +42,7 @@ func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error
 		reqBody.Email,
 		reqBody.Password,
 		clientId,
+		reqBody.IsAdmin,
 	); err != nil {
 		if errors.Is(err, services.ErrUserAlreadyExist) {
 			return errs.NewConflictError(err, "User already exist with this email")

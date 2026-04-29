@@ -21,7 +21,7 @@ var (
 type UserService interface {
 	// Registration performs user registration and returns UserData struct.
 	// It returns ErrUserAlreadyExist if the user exist.
-	Registration(ctx context.Context, username, email, password, clientId string) error
+	Registration(ctx context.Context, username, email, password, clientId string, isAdmin bool) error
 	// Login performs user login and returns LoginResult struct.
 	// It returns ErrUserNotFound if no user are found.
 	// It returns ErrInvalidPassword if the password is invalid.
@@ -47,7 +47,7 @@ func NewUserService(userStore repositories.UserRepository, tokenService TokenSer
 	}
 }
 
-func (s *userService) Registration(ctx context.Context, username, email, password, clientId string) error {
+func (s *userService) Registration(ctx context.Context, username, email, password, clientId string, isAdmin bool) error {
 	op := "user.service-Registration"
 
 	candidate, err := s.userStore.GetByEmail(ctx, email)
@@ -69,6 +69,7 @@ func (s *userService) Registration(ctx context.Context, username, email, passwor
 		Id:             id,
 		Username:       username,
 		Email:          email,
+		IsAdmin:        isAdmin,
 		HashedPassword: string(hashedPassword),
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),

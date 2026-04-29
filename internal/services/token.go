@@ -162,6 +162,7 @@ func (s *tokenService) ValidateAccessToken(accessToken string) (*models.UserDto,
 		UserId:   userId,
 		Username: claims.Username,
 		Email:    claims.Email,
+		IsAdmin:  claims.IsAdmin,
 	}, tokenId, nil
 }
 

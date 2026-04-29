@@ -17,5 +17,6 @@ type TokensPair struct {
 type AccessClaims struct {
 	Username string
 	Email    string
+	IsAdmin  bool
 	jwt.RegisteredClaims
 }

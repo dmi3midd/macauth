@@ -41,7 +41,7 @@ func NewUserRepo(db *sqlx.DB) UserRepository {
 
 func (r *userRepository) GetById(ctx context.Context, userId string) (*models.User, error) {
 	op := "userRepository.GetById"
-	query := `SELECT id, username, email, hashed_password, created_at, updated_at
+	query := `SELECT id, username, email, is_admin, hashed_password, created_at, updated_at
 	FROM users WHERE id = $1
 	`
 	var user models.User
@@ -57,7 +57,7 @@ func (r *userRepository) GetById(ctx context.Context, userId string) (*models.Us
 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	op := "userRepository.GetByEmail"
-	query := `SELECT id, username, email, hashed_password, created_at, updated_at 
+	query := `SELECT id, username, email, is_admin, hashed_password, created_at, updated_at 
 	FROM users WHERE email = $1
 	`
 	var user models.User
@@ -74,8 +74,8 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.
 func (r *userRepository) Create(ctx context.Context, user *models.User) (string, error) {
 	op := "userRepository.Create"
 	query := `INSERT INTO users 
-		   (id, username, email, hashed_password, created_at, updated_at)
-	VALUES (:id, :username, :email, :hashed_password, :created_at, :updated_at)
+		   (id, username, email, is_admin, hashed_password, created_at, updated_at)
+	VALUES (:id, :username, :email, :is_admin, :hashed_password, :created_at, :updated_at)
 	`
 	if _, err := r.db.NamedExecContext(ctx, query, user); err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
@@ -86,7 +86,7 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) (string,
 func (r *userRepository) Update(ctx context.Context, user *models.User) (string, error) {
 	op := "userRepository.Update"
 	query := `UPDATE users 
-	SET username = :username, email = :email, hashed_password = :hashed_password, updated_at = :updated_at 
+	SET username = :username, email = :email, is_admin = :is_admin, hashed_password = :hashed_password, updated_at = :updated_at 
 	WHERE id = :id
 	`
 	_, err := r.db.NamedExecContext(ctx, query, user)
