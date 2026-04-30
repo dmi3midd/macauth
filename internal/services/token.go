@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/rs/xid"
 )
 
 var (
@@ -22,8 +23,8 @@ var (
 )
 
 type TokenService interface {
-	// GenerateTokens generates pair with access and refresh tokens.
-	GenerateTokens(user models.UserDto, clientId, tokenId string) (*models.TokensPair, error)
+	// GenerateTokens generates pair with access and refresh tokens and token id (TokensPair, tokenId, error).
+	GenerateTokens(user models.UserDto, clientId string) (*models.TokensPair, string, error)
 	// ValidateRefreshToken validates refresh token and returns token and user id (tokenId, userId, error).
 	// It returns ("", "", error) if validation go wrong.
 	// It returns ErrUnexpectedSigningMethod if the token uses an unexpected signing method.
@@ -60,17 +61,19 @@ func NewTokenService(tokenStore repositories.TokenRepository, keys *config.KeysP
 	}
 }
 
-func (s *tokenService) GenerateTokens(user models.UserDto, clientId, tokenId string) (*models.TokensPair, error) {
+func (s *tokenService) GenerateTokens(user models.UserDto, clientId string) (*models.TokensPair, string, error) {
 	op := "tokenService.GenerateTokens"
 	accessExpiry, _ := time.ParseDuration("30m")
 	refreshExpiry, _ := time.ParseDuration("336h")
 	now := time.Now()
+	id := xid.New().String()
 
 	// Access token
 	accessClaims := models.AccessClaims{
 		Username: user.Username,
 		Email:    user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        id,
 			Issuer:    "macauth",
 			Subject:   user.UserId,
 			Audience:  jwt.ClaimStrings{clientId},
@@ -81,12 +84,12 @@ func (s *tokenService) GenerateTokens(user models.UserDto, clientId, tokenId str
 	}
 	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodRS256, accessClaims).SignedString(s.keys.PrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	// Refresh token
 	refreshClaims := jwt.RegisteredClaims{
-		ID:        tokenId,
+		ID:        id,
 		Issuer:    "macauth",
 		Subject:   user.UserId,
 		Audience:  jwt.ClaimStrings{clientId},
@@ -96,13 +99,13 @@ func (s *tokenService) GenerateTokens(user models.UserDto, clientId, tokenId str
 	}
 	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodRS256, refreshClaims).SignedString(s.keys.PrivateKey)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return nil, "", fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &models.TokensPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-	}, nil
+	}, id, nil
 }
 
 func (s *tokenService) ValidateRefreshToken(refreshToken string) (string, string, error) {

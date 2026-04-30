@@ -97,8 +97,7 @@ func (s *userService) Login(ctx context.Context, email, password, clientId strin
 	}
 
 	userDto := models.NewUserDto(user)
-	tokenId := xid.New().String()
-	tokens, err := s.tokenService.GenerateTokens(*userDto, clientId, tokenId)
+	tokens, tokenId, err := s.tokenService.GenerateTokens(*userDto, clientId)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -157,13 +156,12 @@ func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	userDto := models.NewUserDto(user)
-	newTokenId := xid.New().String()
-	tokens, err := s.tokenService.GenerateTokens(*userDto, clientId, newTokenId)
+	tokens, newTokenId, err := s.tokenService.GenerateTokens(*userDto, clientId)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if _, err := s.tokenService.SaveToken(ctx, tokens.RefreshToken, userId, clientId, tokenId); err != nil {
+	if _, err := s.tokenService.SaveToken(ctx, tokens.RefreshToken, userId, clientId, newTokenId); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
