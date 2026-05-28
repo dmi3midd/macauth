@@ -1,0 +1,446 @@
+{
+  "info": {
+    "_postman_id": "4a71de04-cd5e-49b2-be2b-c8ffea6b251a",
+    "name": "macauth API Collection",
+    "description": "API requests collection for macauth, including automated variable updating and token refreshing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Client API",
+      "item": [
+        {
+          "name": "Link Client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Extract and save x-client-id\", function () {",
+                  "    pm.response.to.have.header(\"x-client-id\");",
+                  "    var clientId = pm.response.headers.get(\"x-client-id\");",
+                  "    pm.environment.set(\"clientId\", clientId);",
+                  "    console.log(\"Saved clientId to environment: \" + clientId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{clientName}}\",\n  \"secret\": \"{{clientSecret}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/client",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "client"
+              ]
+            },
+            "description": "Register/Link a new client service to get a clientId. Requires API_KEY header."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Public Key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Verify response contains key details\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('object');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/client/public-key",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "client",
+                "public-key"
+              ]
+            },
+            "description": "Fetch the RSA public key used for local JWT signature validation."
+          },
+          "response": []
+        },
+        {
+          "name": "Unlink Client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{apiKey}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/client/{{clientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "client",
+                "{{clientId}}"
+              ]
+            },
+            "description": "Remove the client and invalidate its credentials."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User API",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-client-id",
+                "value": "{{clientId}}",
+                "type": "text"
+              },
+              {
+                "key": "x-client-secret",
+                "value": "{{clientSecret}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{userUsername}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"isAdmin\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/user/registration",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "user",
+                "registration"
+              ]
+            },
+            "description": "Register a new user inside the scope of the linked client."
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Extract access token\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"accessToken\");",
+                  "    pm.environment.set(\"accessToken\", jsonData.accessToken);",
+                  "    console.log(\"Saved accessToken to environment\");",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains user details\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"user\");",
+                  "    pm.expect(jsonData.user.Email).to.eql(pm.environment.get(\"userEmail\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-client-id",
+                "value": "{{clientId}}",
+                "type": "text"
+              },
+              {
+                "key": "x-client-secret",
+                "value": "{{clientSecret}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/user/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "user",
+                "login"
+              ]
+            },
+            "description": "Log in a user to obtain access token and set refresh token cookie."
+          },
+          "response": []
+        },
+        {
+          "name": "Validate Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Validate email matches\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.Email).to.eql(pm.environment.get(\"userEmail\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-client-id",
+                "value": "{{clientId}}",
+                "type": "text"
+              },
+              {
+                "key": "x-client-secret",
+                "value": "{{clientSecret}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/user/validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "user",
+                "validate"
+              ]
+            },
+            "description": "Validate the current JWT access token."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Update access token\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"accessToken\");",
+                  "    pm.environment.set(\"accessToken\", jsonData.accessToken);",
+                  "    console.log(\"Refreshed and saved new accessToken\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "x-client-id",
+                "value": "{{clientId}}",
+                "type": "text"
+              },
+              {
+                "key": "x-client-secret",
+                "value": "{{clientSecret}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/user/refresh",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "user",
+                "refresh"
+              ]
+            },
+            "description": "Exchange the HTTP-only refreshToken cookie for a new accessToken."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Clear local tokens\", function () {",
+                  "    pm.environment.set(\"accessToken\", \"\");",
+                  "    console.log(\"Cleared accessToken from environment\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-client-id",
+                "value": "{{clientId}}",
+                "type": "text"
+              },
+              {
+                "key": "x-client-secret",
+                "value": "{{clientSecret}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/user/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "user",
+                "logout"
+              ]
+            },
+            "description": "Log out user, clearing the refreshToken cookie."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

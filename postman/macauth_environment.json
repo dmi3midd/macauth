@@ -1,0 +1,63 @@
+{
+  "id": "e30e70fa-4f9e-4c0f-90e8-07d0f507b9e0",
+  "name": "macauth-local",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:2800",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "apiKey",
+      "value": "ce7d6a4f56c227c0f9e638f323f485d9e71d170502dbd34fceee8e01967a6b0e",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "clientName",
+      "value": "my-app",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "clientSecret",
+      "value": "my-app-secret-key-1234",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "clientId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "userEmail",
+      "value": "user@example.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "userUsername",
+      "value": "testuser",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "userPassword",
+      "value": "Password123!",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "_postman_exported_at": "2026-05-28T18:00:00.000Z",
+  "_postman_exported_by": "Antigravity"
+}
