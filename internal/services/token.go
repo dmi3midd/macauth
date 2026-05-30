@@ -173,11 +173,27 @@ func (s *tokenService) ValidateAccessToken(accessToken string) (*models.UserDto,
 
 func (s *tokenService) SaveToken(ctx context.Context, refreshToken, userId, clientId, tokenId string) (string, error) {
 	op := "tokenService.SaveToken"
+
+	claims := &jwt.RegisteredClaims{}
+	_, _, err := jwt.NewParser().ParseUnverified(refreshToken, claims)
+	if err != nil {
+		return "", fmt.Errorf("%s: failed to parse refresh token: %w", op, err)
+	}
+
+	var expiresAt time.Time
+	if claims.ExpiresAt != nil {
+		expiresAt = claims.ExpiresAt.Time
+	} else {
+		// fallback to 14 days if not present
+		expiresAt = time.Now().Add(336 * time.Hour)
+	}
+
 	token := models.Token{
 		Id:           tokenId,
 		RefreshToken: refreshToken,
 		UserId:       userId,
 		ClientId:     clientId,
+		ExpiresAt:    expiresAt,
 	}
 	id, err := s.tokenStore.Create(ctx, &token)
 	if err != nil {

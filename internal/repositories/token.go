@@ -43,7 +43,7 @@ func NewTokenRepo(db *sqlx.DB) TokenRepository {
 
 func (r *tokenRepository) GetById(ctx context.Context, id string) (*models.Token, error) {
 	op := "tokenRepository.GetById"
-	query := `SELECT id, refresh_token, user_id, client_id 
+	query := `SELECT id, refresh_token, user_id, client_id, expires_at 
 	FROM tokens WHERE id = $1
 	`
 	var token models.Token
@@ -59,7 +59,7 @@ func (r *tokenRepository) GetById(ctx context.Context, id string) (*models.Token
 
 func (r *tokenRepository) GetByToken(ctx context.Context, refreshToken string) (*models.Token, error) {
 	op := "tokenRepository.GetByToken"
-	query := `SELECT id, refresh_token, user_id, client_id 
+	query := `SELECT id, refresh_token, user_id, client_id, expires_at 
 	FROM tokens WHERE refresh_token = $1
 	`
 	var token models.Token
@@ -75,8 +75,8 @@ func (r *tokenRepository) GetByToken(ctx context.Context, refreshToken string) (
 
 func (r *tokenRepository) Create(ctx context.Context, token *models.Token) (string, error) {
 	op := "tokenRepository.Create"
-	query := `INSERT INTO tokens (id, refresh_token, user_id, client_id)
-			  VALUES (:id, :refresh_token, :user_id, :client_id)`
+	query := `INSERT INTO tokens (id, refresh_token, user_id, client_id, expires_at)
+			  VALUES (:id, :refresh_token, :user_id, :client_id, :expires_at)`
 	if _, err := r.db.NamedExecContext(ctx, query, token); err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
