@@ -11,7 +11,15 @@ import (
 )
 
 type Database struct {
-	DBUrl string `mapstructure:"dbUrl"`
+	Name         string        `yaml:"dbname"`
+	Host         string        `yaml:"host"`
+	Port         int           `yaml:"port"`
+	User         string        `yaml:"user"`
+	Password     string        `yaml:"password"`
+	SSLMode      string        `yaml:"sslmode"`
+	MaxOpenConns int           `yaml:"maxOpenConns"`
+	MaxIdleConns int           `yaml:"maxIdleConns"`
+	MaxIdleTime  time.Duration `yaml:"maxIdleTime"`
 }
 
 type HTTPServer struct {

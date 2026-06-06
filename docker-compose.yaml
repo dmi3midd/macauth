@@ -1,15 +1,39 @@
-version: '3.8'
-
 services:
-  macauth:
-    build: .
-    container_name: macauth-api
+  postgres:
+    image: postgres:17-alpine
+    container_name: macauth-db
     restart: unless-stopped
+    profiles: [db]
+    environment:
+      POSTGRES_DB: macauth
+      POSTGRES_USER: macauth_user
+      POSTGRES_PASSWORD: macauth_9876
     ports:
-      - "2800:2800"
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U macauth_user -d macauth"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: macauth-app
+    restart: unless-stopped
     env_file:
       - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "2800:2800"
     volumes:
       - ./config.yaml:/app/config.yaml:ro
       - ./storage:/app/storage
-      - ./keys:/app/keys:ro
+
+volumes:
+  postgres_data:

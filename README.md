@@ -23,7 +23,6 @@ Run the setup script. It will automatically:
 
 - Generate a highly secure random `API_KEY` (saved in the `.env` file).
 - Prepare `config.yaml`.
-- Create a SQLite database file.
 - Generate an RSA key pair (`private.pem` & `public.pem`) required for JWT signing.
 
 ```bash
@@ -34,10 +33,10 @@ make setup
 
 ### 3. Start the service
 
-Start the API in the background using Docker Compose:
+Start the API in the background using Docker Compose (includes PostgreSQL):
 
 ```bash
-make docker-up
+make docker-run-all
 ```
 
 Your SSO service is now up and running at `http://localhost:2800` (default port).

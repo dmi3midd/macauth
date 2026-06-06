@@ -1,5 +1,13 @@
 database:
-  dbUrl: ./storage/macauth.db
+  dbname: macauth
+  host: postgres
+  port: 5432
+  user: macauth_user
+  password: macauth_9876
+  sslmode: disable
+  maxOpenConns: 10
+  maxIdleConns: 10
+  maxIdleTime: 15m
 httpServer:
   address: 0.0.0.0:2800
   idleTimeout: 90s
@@ -9,4 +17,4 @@ pem:
   privPath: ./storage/keys/private.pem
   pubPath: ./storage/keys/public.pem
 log:
-  logPath: ./storage/macauth.log
+  logPath: ./storage/logs/macauth.log

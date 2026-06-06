@@ -3,25 +3,23 @@ package database
 import (
 	"context"
 	"fmt"
-	"log/slog"
+	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	"macauth/internal/config"
 	"macauth/migrations"
 
+	_ "github.com/jackc/pgx/stdlib"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/joho/godotenv/autoload"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/pressly/goose/v3"
 )
 
-var (
-	OperationErrOpenDB     = "failed to open database"
-	OperationErrSetDialect = "failed to set dialect"
-	OperationErrUpMigr     = "failed to up migrations"
-)
+// var (
+// 	OperationErrOpenDB     = "failed to open database"
+// 	OperationErrSetDialect = "failed to set dialect"
+// 	OperationErrUpMigr     = "failed to up migrations"
+// )
 
 // Service represents a service that interacts with a database.
 type DBService interface {
@@ -38,35 +36,28 @@ type DBService interface {
 }
 
 type dbService struct {
-	db    *sqlx.DB
-	dbUrl string
+	cfg *config.Database
+	db  *sqlx.DB
 }
 
 func New(cfg *config.Database) (DBService, error) {
-	dsn := cfg.DBUrl
-	if !strings.Contains(dsn, "?") {
-		dsn += "?_foreign_keys=on"
-	} else if !strings.Contains(dsn, "_foreign_keys=") && !strings.Contains(dsn, "_fk=") {
-		dsn += "&_foreign_keys=on"
-	}
-
-	db, err := sqlx.Open("sqlite3", dsn)
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s", cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.Name, cfg.SSLMode)
+	db, err := sqlx.Connect("pgx", connStr)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", OperationErrOpenDB, err)
+		log.Fatal(err)
 	}
 
 	goose.SetBaseFS(migrations.FS)
-
-	if err := goose.SetDialect("sqlite3"); err != nil {
-		return nil, fmt.Errorf("%s: %w", OperationErrSetDialect, err)
+	if err := goose.SetDialect("postgres"); err != nil {
+		log.Fatal(err)
 	}
 	if err := goose.Up(db.DB, "."); err != nil {
-		return nil, fmt.Errorf("%s: %w", OperationErrUpMigr, err)
+		log.Fatal(err)
 	}
 
 	return &dbService{
-		db:    db,
-		dbUrl: cfg.DBUrl,
+		cfg: cfg,
+		db:  db,
 	}, nil
 }
 
@@ -83,6 +74,7 @@ func (s *dbService) Health() map[string]string {
 	if err != nil {
 		stats["status"] = "down"
 		stats["error"] = fmt.Sprintf("db down: %v", err)
+		log.Fatalf("db down: %v", err) // Log the error and terminate the program
 		return stats
 	}
 
@@ -125,13 +117,11 @@ func (s *dbService) Health() map[string]string {
 // If the connection is successfully closed, it returns nil.
 // If an error occurs while closing the connection, it returns the error.
 func (s *dbService) Close() error {
-	slog.Info(
-		"Disconnected from database: %s",
-		slog.String("url", s.dbUrl),
-	)
+	log.Printf("Disconnected from database: %s", s.cfg.Name)
 	return s.db.Close()
 }
 
+// GetDB returns the database connection pool.
 func (s *dbService) GetDB() *sqlx.DB {
 	return s.db
 }

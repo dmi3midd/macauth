@@ -2,6 +2,7 @@
 
 # Setup the application
 setup:
+	@chmod +x setup.sh
 	@./setup.sh
 
 # Build the application
@@ -42,11 +43,16 @@ watch:
 
 .PHONY: setup build run clean watch docker-up docker-down
 
-# Docker operations
-docker-up:
-	@echo "Starting Docker containers..."
-	@docker compose up -d --build
+# Docker — app only (uses external postgres, set host in config.yaml)
+docker-run:
+	@docker compose up --build -d
+
+# Docker — app + postgres (set host: postgres in config.yaml)
+docker-run-all:
+	@docker compose --profile db up --build -d
 
 docker-down:
-	@echo "Stopping Docker containers..."
-	@docker compose down
+	@docker compose --profile db down
+
+docker-logs:
+	@docker compose logs -f app
