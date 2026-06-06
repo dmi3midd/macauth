@@ -33,11 +33,36 @@ make setup
 
 ### 3. Start the service
 
-Start the API in the background using Docker Compose (includes PostgreSQL):
+**Option A — All-in-one** (app + bundled PostgreSQL):
+
+No extra configuration needed. This starts a PostgreSQL container alongside the app:
 
 ```bash
+# Set host: postgres in config.yaml
 make docker-run-all
 ```
+
+**Option B — App only** (connect to an external PostgreSQL):
+
+If you already have a running PostgreSQL instance, configure the connection in `config.yaml`:
+
+```yaml
+database:
+  dbname: macauth
+  host: your-postgres-host  # e.g., localhost, 192.168.1.100, host.docker.internal
+  port: 5432
+  user: macauth_user
+  password: macauth_9876
+  sslmode: disable
+```
+
+Then start only the app container:
+
+```bash
+make docker-run
+```
+
+> **Tip:** When connecting to a PostgreSQL running on the host machine from Docker, use `host.docker.internal` as the host.
 
 Your SSO service is now up and running at `http://localhost:2800` (default port).
 
