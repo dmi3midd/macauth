@@ -26,7 +26,7 @@ func (s *Server) RegisterRoutes() *chi.Mux {
 	clientRepo := repositories.NewClientRepo(s.db.GetDB())
 
 	// services
-	tokenService := services.NewTokenService(tokenRepo, s.cfg.Keys)
+	tokenService := services.NewTokenService(tokenRepo, &s.cfg.Keys)
 	userService := services.NewUserService(userRepo, tokenService)
 	clientService := services.NewClientService(clientRepo)
 

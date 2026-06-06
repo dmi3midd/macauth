@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 type Database struct {
@@ -15,50 +15,47 @@ type Database struct {
 }
 
 type HTTPServer struct {
-	Address      string        `mapstructure:"address"`
-	IdleTimeout  time.Duration `mapstructure:"idleTimeout"`
-	ReadTimeout  time.Duration `mapstructure:"readTimeout"`
-	WriteTimeout time.Duration `mapstructure:"writeTimeout"`
+	Address      string        `yaml:"address"`
+	IdleTimeout  time.Duration `yaml:"idleTimeout"`
+	ReadTimeout  time.Duration `yaml:"readTimeout"`
+	WriteTimeout time.Duration `yaml:"writeTimeout"`
 }
 
 type PEM struct {
-	PrivPath string `mapstructure:"privPath"`
-	PubPath  string `mapstructure:"pubPath"`
+	PrivPath string `yaml:"privPath"`
+	PubPath  string `yaml:"pubPath"`
 }
 
 type Log struct {
-	LogPath string `mapstructure:"logPath"`
+	LogPath string `yaml:"logPath"`
 }
 
 type Config struct {
-	Database   `mapstructure:"database"`
-	HTTPServer `mapstructure:"httpServer"`
-	PEM        `mapstructure:"pem"`
-	Log        `mapstructure:"log"`
-	Keys       *KeysPair `mapstructure:"-"`
+	Database   `yaml:"database"`
+	HTTPServer `yaml:"httpServer"`
+	PEM        `yaml:"pem"`
+	Log        `yaml:"log"`
+	Keys       KeysPair `yaml:"-"`
 }
 
 func LoadConfig() (*Config, error) {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-
-	if err := viper.ReadInConfig(); err != nil {
-		return nil, fmt.Errorf("failed to read config: %w", err)
+	data, err := os.ReadFile("./config.yaml")
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	var cfg Config
-	if err := viper.Unmarshal(&cfg); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config into struct: %w", err)
+	cfg := &Config{}
+	if err := yaml.Unmarshal(data, cfg); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config file: %w", err)
 	}
 
 	keys, err := LoadKeys(cfg.PEM.PrivPath, cfg.PEM.PubPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load keys: %w", err)
 	}
-	cfg.Keys = keys
+	cfg.Keys = *keys
 
-	return &cfg, nil
+	return cfg, nil
 }
 
 type KeysPair struct {
