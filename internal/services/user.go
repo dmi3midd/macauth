@@ -33,6 +33,8 @@ type UserService interface {
 	// It returns ErrUserNotFound if no user are found.
 	// Look at TokenService.ValidateRefreshToken for other errors.
 	Refresh(ctx context.Context, refreshToken, clientId string) (*models.AuthDto, error)
+	// IsAdmin returns true if the user is an admin.
+	IsAdmin(ctx context.Context, userId string) (bool, error)
 }
 
 type userService struct {
@@ -175,4 +177,17 @@ func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string
 		User:     *userDto,
 		Tokens:   *tokens,
 	}, nil
+}
+
+func (s *userService) IsAdmin(ctx context.Context, userId string) (bool, error) {
+	op := "user.service-IsAdmin"
+
+	user, err := s.userStore.GetById(ctx, userId)
+	if err != nil {
+		if errors.Is(err, repositories.ErrUserNotFound) {
+			return false, nil
+		}
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+	return user.IsAdmin, nil
 }

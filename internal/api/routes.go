@@ -67,6 +67,7 @@ func (s *Server) RegisterRoutes() *chi.Mux {
 			r.Delete("/logout", errs.ErrorHandler(userHandler.Logout))
 			r.Put("/refresh", errs.ErrorHandler(userHandler.Refresh))
 			r.Get("/validate", errs.ErrorHandler(tokenHandler.Validate))
+			r.Get("/is-admin/{userId}", errs.ErrorHandler(userHandler.IsAdmin))
 		})
 	})
 
