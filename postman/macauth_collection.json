@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "4a71de04-cd5e-49b2-be2b-c8ffea6b251a",
     "name": "macauth API Collection",
-    "description": "API requests collection for macauth, including automated variable updating and token refreshing.",
+    "description": "API requests collection for macauth (service-to-service). All tokens and clientId are passed via request/response body.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -20,11 +20,11 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test(\"Extract and save x-client-id\", function () {",
-                  "    pm.response.to.have.header(\"x-client-id\");",
-                  "    var clientId = pm.response.headers.get(\"x-client-id\");",
-                  "    pm.environment.set(\"clientId\", clientId);",
-                  "    console.log(\"Saved clientId to environment: \" + clientId);",
+                  "pm.test(\"Extract and save clientId from body\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"clientId\");",
+                  "    pm.environment.set(\"clientId\", jsonData.clientId);",
+                  "    console.log(\"Saved clientId to environment: \" + jsonData.clientId);",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -61,7 +61,7 @@
                 "client"
               ]
             },
-            "description": "Register/Link a new client service to get a clientId. Requires API_KEY header."
+            "description": "Register/Link a new client service to get a clientId. Returns clientId in response body. Requires API_KEY header."
           },
           "response": []
         },
@@ -193,7 +193,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"{{userUsername}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"isAdmin\": false\n}"
+              "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"username\": \"{{userUsername}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"isAdmin\": false\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/macauth/api/v1/user/registration",
@@ -208,7 +208,7 @@
                 "registration"
               ]
             },
-            "description": "Register a new user inside the scope of the linked client."
+            "description": "Register a new user. clientId is passed in request body."
           },
           "response": []
         },
@@ -223,11 +223,13 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test(\"Extract access token\", function () {",
+                  "pm.test(\"Extract and save tokens\", function () {",
                   "    var jsonData = pm.response.json();",
                   "    pm.expect(jsonData).to.have.property(\"accessToken\");",
+                  "    pm.expect(jsonData).to.have.property(\"refreshToken\");",
                   "    pm.environment.set(\"accessToken\", jsonData.accessToken);",
-                  "    console.log(\"Saved accessToken to environment\");",
+                  "    pm.environment.set(\"refreshToken\", jsonData.refreshToken);",
+                  "    console.log(\"Saved accessToken and refreshToken to environment\");",
                   "});",
                   "",
                   "pm.test(\"Response contains user details\", function () {",
@@ -261,7 +263,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+              "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/macauth/api/v1/user/login",
@@ -276,7 +278,7 @@
                 "login"
               ]
             },
-            "description": "Log in a user to obtain access token and set refresh token cookie."
+            "description": "Log in a user. Returns accessToken and refreshToken in response body."
           },
           "response": []
         },
@@ -347,11 +349,13 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test(\"Update access token\", function () {",
+                  "pm.test(\"Update tokens\", function () {",
                   "    var jsonData = pm.response.json();",
                   "    pm.expect(jsonData).to.have.property(\"accessToken\");",
+                  "    pm.expect(jsonData).to.have.property(\"refreshToken\");",
                   "    pm.environment.set(\"accessToken\", jsonData.accessToken);",
-                  "    console.log(\"Refreshed and saved new accessToken\");",
+                  "    pm.environment.set(\"refreshToken\", jsonData.refreshToken);",
+                  "    console.log(\"Refreshed and saved new accessToken and refreshToken\");",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -361,6 +365,11 @@
           "request": {
             "method": "PUT",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
               {
                 "key": "x-client-id",
                 "value": "{{clientId}}",
@@ -372,6 +381,10 @@
                 "type": "text"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/macauth/api/v1/user/refresh",
               "host": [
@@ -385,7 +398,7 @@
                 "refresh"
               ]
             },
-            "description": "Exchange the HTTP-only refreshToken cookie for a new accessToken."
+            "description": "Exchange refreshToken for new accessToken and refreshToken. Both tokens are passed via request/response body."
           },
           "response": []
         },
@@ -402,7 +415,8 @@
                   "",
                   "pm.test(\"Clear local tokens\", function () {",
                   "    pm.environment.set(\"accessToken\", \"\");",
-                  "    console.log(\"Cleared accessToken from environment\");",
+                  "    pm.environment.set(\"refreshToken\", \"\");",
+                  "    console.log(\"Cleared accessToken and refreshToken from environment\");",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -412,6 +426,11 @@
           "request": {
             "method": "DELETE",
             "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
               {
                 "key": "x-client-id",
                 "value": "{{clientId}}",
@@ -423,6 +442,10 @@
                 "type": "text"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/macauth/api/v1/user/logout",
               "host": [
@@ -436,7 +459,7 @@
                 "logout"
               ]
             },
-            "description": "Log out user, clearing the refreshToken cookie."
+            "description": "Log out user by invalidating the refreshToken. Token is passed in request body."
           },
           "response": []
         }

@@ -28,6 +28,9 @@ type LinkRequest struct {
 	Name   string `json:"name"`
 	Secret string `json:"secret"`
 }
+type LinkResponse struct {
+	ClientId string `json:"clientId"`
+}
 
 func (h *ClientHandler) Link(w http.ResponseWriter, r *http.Request) error {
 	var reqBody LinkRequest
@@ -46,8 +49,15 @@ func (h *ClientHandler) Link(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("x-client-id", clientId)
 	w.WriteHeader(http.StatusOK)
+
+	response := LinkResponse{
+		ClientId: clientId,
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		return errs.InternalServerError(err)
+	}
 
 	return nil
 }

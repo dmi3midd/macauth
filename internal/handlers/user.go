@@ -22,6 +22,7 @@ func NewUserHandler(userService services.UserService) *UserHandler {
 }
 
 type RegistrationRequest struct {
+	ClientId string `json:"clientId"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	IsAdmin  bool   `json:"isAdmin"`
@@ -35,7 +36,7 @@ func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error
 	}
 	defer r.Body.Close()
 
-	clientId := r.Header.Get("x-client-id")
+	clientId := reqBody.ClientId
 
 	ctx := r.Context()
 	if err := h.userService.Registration(
@@ -59,8 +60,14 @@ func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error
 }
 
 type LoginRequest struct {
+	ClientId string `json:"clientId"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+type LoginResponse struct {
+	User         models.UserDto `json:"user"`
+	RefreshToken string         `json:"refreshToken"`
+	AccessToken  string         `json:"accessToken"`
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
@@ -70,7 +77,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	}
 	defer r.Body.Close()
 
-	clientId := r.Header.Get("x-client-id")
+	clientId := reqBody.ClientId
 
 	ctx := r.Context()
 	userData, err := h.userService.Login(ctx, reqBody.Email, reqBody.Password, clientId)
@@ -84,24 +91,13 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 		return errs.InternalServerError(err)
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "refreshToken",
-		Value:    userData.Tokens.RefreshToken,
-		MaxAge:   14 * 24 * 60 * 60,
-		HttpOnly: true,
-		Path:     "/",
-		Secure:   true,
-	})
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	response := struct {
-		User        models.UserDto `json:"user"`
-		AccessToken string         `json:"accessToken"`
-	}{
-		User:        userData.User,
-		AccessToken: userData.Tokens.AccessToken,
+	response := LoginResponse{
+		User:         userData.User,
+		RefreshToken: userData.Tokens.RefreshToken,
+		AccessToken:  userData.Tokens.AccessToken,
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -111,25 +107,20 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+type LogoutRequest struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) error {
-	cookie, err := r.Cookie("refreshToken")
-	if err != nil {
-		return errs.NewUnauthorizedError(err, "Unauthorized user")
+	var reqBody LogoutRequest
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		return errs.NewBadRequestError(err, "Invalid request body")
 	}
-	refreshToken := cookie.Value
+	refreshToken := reqBody.RefreshToken
 	ctx := r.Context()
 	if err := h.userService.Logout(ctx, refreshToken); err != nil {
 		return errs.InternalServerError(err)
 	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "refreshToken",
-		Value:    "",
-		MaxAge:   -1,
-		HttpOnly: true,
-		Path:     "/",
-		Secure:   true,
-	})
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -137,14 +128,23 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
-	cookie, err := r.Cookie("refreshToken")
-	if err != nil {
-		return errs.NewUnauthorizedError(err, "Unauthorized user")
-	}
-	refreshToken := cookie.Value
+type RefreshRequest struct {
+	ClientId     string `json:"clientId"`
+	RefreshToken string `json:"refreshToken"`
+}
+type RefreshResponse struct {
+	User         models.UserDto `json:"user"`
+	RefreshToken string         `json:"refreshToken"`
+	AccessToken  string         `json:"accessToken"`
+}
 
-	clientId := r.Header.Get("x-client-id")
+func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
+	var reqBody RefreshRequest
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		return errs.NewBadRequestError(err, "Invalid request body")
+	}
+	refreshToken := reqBody.RefreshToken
+	clientId := reqBody.ClientId
 
 	ctx := r.Context()
 	userData, err := h.userService.Refresh(ctx, refreshToken, clientId)
@@ -155,24 +155,13 @@ func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
 		return errs.InternalServerError(err)
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "refreshToken",
-		Value:    userData.Tokens.RefreshToken,
-		MaxAge:   14 * 24 * 60 * 60,
-		HttpOnly: true,
-		Path:     "/",
-		Secure:   true,
-	})
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
-	response := struct {
-		User        models.UserDto `json:"user"`
-		AccessToken string         `json:"accessToken"`
-	}{
-		User:        userData.User,
-		AccessToken: userData.Tokens.AccessToken,
+	response := RefreshResponse{
+		User:         userData.User,
+		RefreshToken: userData.Tokens.RefreshToken,
+		AccessToken:  userData.Tokens.AccessToken,
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
