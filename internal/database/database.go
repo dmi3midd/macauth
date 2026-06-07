@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -74,7 +75,7 @@ func (s *dbService) Health() map[string]string {
 	if err != nil {
 		stats["status"] = "down"
 		stats["error"] = fmt.Sprintf("db down: %v", err)
-		log.Fatalf("db down: %v", err) // Log the error and terminate the program
+		slog.Warn("db down", slog.String("error", err.Error()))
 		return stats
 	}
 
@@ -117,7 +118,7 @@ func (s *dbService) Health() map[string]string {
 // If the connection is successfully closed, it returns nil.
 // If an error occurs while closing the connection, it returns the error.
 func (s *dbService) Close() error {
-	log.Printf("Disconnected from database: %s", s.cfg.Name)
+	slog.Info("Disconnected from database", slog.String("db_name", s.cfg.Name))
 	return s.db.Close()
 }
 

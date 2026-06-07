@@ -150,7 +150,10 @@ func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
 	userData, err := h.userService.Refresh(ctx, refreshToken, clientId)
 	if err != nil {
 		if errors.Is(err, services.ErrUserNotFound) {
-			return errs.NewNotFoundError(err, "User does not exist with")
+			return errs.NewNotFoundError(err, "User does not exist")
+		}
+		if errors.Is(err, services.ErrInvalidRefreshToken) {
+			return errs.NewUnauthorizedError(err, "Invalid refresh token")
 		}
 		return errs.InternalServerError(err)
 	}
