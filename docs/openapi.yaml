@@ -1,0 +1,568 @@
+openapi: 3.0.3
+info:
+  title: macauth API
+  description: |
+    Authentication microservice designed for **service-to-service** communication.
+
+    All tokens (access & refresh) are exchanged via request/response body — no cookies are used.
+    This allows the consuming service to decide how to deliver tokens to end users.
+
+    ## Authentication
+
+    - **Client API** endpoints are protected by `x-api-key` header (API Key).
+    - **User API** endpoints are protected by `x-client-id` + `x-client-secret` headers (Client Credentials).
+    - **Token validation** additionally requires `Authorization: Bearer <accessToken>` header.
+  version: 1.0.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:2800/macauth/api/v1
+    description: Local development server
+
+tags:
+  - name: Client
+    description: Client (service) registration and management. Protected by API Key.
+  - name: User
+    description: User authentication operations. Protected by Client Credentials.
+  - name: Token
+    description: Token validation and public key retrieval.
+
+# ---------------------------------------------------------------------------
+# Security Schemes
+# ---------------------------------------------------------------------------
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key for client-level endpoints.
+
+    ClientCredentials:
+      type: apiKey
+      in: header
+      name: x-client-id
+      description: |
+        Client ID obtained from the Link Client endpoint.
+        Must be used together with `x-client-secret`.
+
+    ClientSecret:
+      type: apiKey
+      in: header
+      name: x-client-secret
+      description: |
+        Client secret provided during client linking.
+        Must be used together with `x-client-id`.
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token returned by Login or Refresh endpoints.
+
+  # -------------------------------------------------------------------------
+  # Schemas
+  # -------------------------------------------------------------------------
+  schemas:
+    # -- Requests --
+
+    LinkRequest:
+      type: object
+      required: [name, secret]
+      properties:
+        name:
+          type: string
+          description: Unique name for the client service.
+          example: my-app
+        secret:
+          type: string
+          description: Secret key for client authentication.
+          example: my-app-secret-key-1234
+
+    RegistrationRequest:
+      type: object
+      required: [clientId, username, email, password]
+      properties:
+        clientId:
+          type: string
+          description: Client ID the user is registering under.
+          example: crs1a2b3c4d5e6f
+        username:
+          type: string
+          example: testuser
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          example: Password123!
+        isAdmin:
+          type: boolean
+          default: false
+
+    LoginRequest:
+      type: object
+      required: [clientId, email, password]
+      properties:
+        clientId:
+          type: string
+          description: Client ID to scope the login.
+          example: crs1a2b3c4d5e6f
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          example: Password123!
+
+    LogoutRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          description: The refresh token to invalidate.
+
+    RefreshRequest:
+      type: object
+      required: [clientId, refreshToken]
+      properties:
+        clientId:
+          type: string
+          description: Client ID that issued the token.
+          example: crs1a2b3c4d5e6f
+        refreshToken:
+          type: string
+          description: Current refresh token to exchange.
+
+    # -- Responses --
+
+    LinkResponse:
+      type: object
+      properties:
+        clientId:
+          type: string
+          description: Generated unique client identifier.
+          example: crs1a2b3c4d5e6f
+
+    UserDto:
+      type: object
+      properties:
+        UserId:
+          type: string
+          example: crs7g8h9i0j1k2
+        Username:
+          type: string
+          example: testuser
+        Email:
+          type: string
+          format: email
+          example: user@example.com
+        IsAdmin:
+          type: boolean
+          example: false
+
+    AuthResponse:
+      type: object
+      description: Returned by Login and Refresh endpoints.
+      properties:
+        user:
+          $ref: "#/components/schemas/UserDto"
+        accessToken:
+          type: string
+          description: JWT access token (RS256, 30 min expiry).
+        refreshToken:
+          type: string
+          description: JWT refresh token (RS256, 14 day expiry).
+
+    RSAPublicKey:
+      type: object
+      description: RSA public key components for local JWT verification.
+      properties:
+        N:
+          type: integer
+          description: RSA modulus.
+        E:
+          type: integer
+          description: RSA public exponent.
+          example: 65537
+
+    # -- Errors --
+
+    ErrorResponse:
+      type: object
+      description: Standard error response returned by all endpoints.
+      properties:
+        code:
+          type: integer
+          description: HTTP status code.
+          example: 400
+        message:
+          type: string
+          description: Human-readable error message.
+          example: Invalid password
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the error occurred.
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+paths:
+  # =========================================================================
+  # Client API
+  # =========================================================================
+
+  /client:
+    post:
+      tags: [Client]
+      summary: Link Client
+      operationId: linkClient
+      description: |
+        Register a new client service. Returns a `clientId` that the service
+        will use along with its secret for subsequent User API requests.
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LinkRequest"
+      responses:
+        "200":
+          description: Client successfully linked.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkResponse"
+        "400":
+          description: Invalid request body.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Client with this name already exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: 409
+                message: Client already exist with this name
+                timestamp: "2026-06-07T12:00:00Z"
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /client/{clientId}:
+    delete:
+      tags: [Client]
+      summary: Unlink Client
+      operationId: unlinkClient
+      description: Remove a client and invalidate its credentials.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The client ID to remove.
+      responses:
+        "200":
+          description: Client successfully unlinked.
+        "400":
+          description: Client ID is not provided.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Client does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /client/public-key:
+    get:
+      tags: [Token]
+      summary: Get Public Key
+      operationId: getPublicKey
+      description: |
+        Retrieve the RSA public key used to sign JWTs.
+        Consuming services can use this key to verify access tokens locally
+        without calling the Validate endpoint.
+      security:
+        - ApiKeyAuth: []
+      responses:
+        "200":
+          description: RSA public key components.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RSAPublicKey"
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # =========================================================================
+  # User API
+  # =========================================================================
+
+  /user/registration:
+    post:
+      tags: [User]
+      summary: Register User
+      operationId: registerUser
+      description: Register a new user within the scope of a linked client.
+      security:
+        - ClientCredentials: []
+          ClientSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegistrationRequest"
+      responses:
+        "200":
+          description: User successfully registered.
+        "400":
+          description: Invalid request body or missing client credentials.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: User with this email already exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: 409
+                message: User already exist with this email
+                timestamp: "2026-06-07T12:00:00Z"
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /user/login:
+    post:
+      tags: [User]
+      summary: Login User
+      operationId: loginUser
+      description: |
+        Authenticate a user and receive both access and refresh tokens in the response body.
+      security:
+        - ClientCredentials: []
+          ClientSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful. Returns user info and token pair.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Invalid password or bad request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: 400
+                message: Invalid password
+                timestamp: "2026-06-07T12:00:00Z"
+        "404":
+          description: User with this email does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /user/logout:
+    delete:
+      tags: [User]
+      summary: Logout User
+      operationId: logoutUser
+      description: Invalidate the refresh token to log out the user.
+      security:
+        - ClientCredentials: []
+          ClientSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+      responses:
+        "200":
+          description: Successfully logged out.
+        "400":
+          description: Invalid request body.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /user/refresh:
+    put:
+      tags: [User]
+      summary: Refresh Tokens
+      operationId: refreshTokens
+      description: |
+        Exchange a valid refresh token for a new access/refresh token pair.
+        The old refresh token is invalidated (rotation).
+      security:
+        - ClientCredentials: []
+          ClientSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: Tokens refreshed successfully. Returns new token pair.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Invalid request body.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /user/validate:
+    get:
+      tags: [Token]
+      summary: Validate Access Token
+      operationId: validateToken
+      description: |
+        Validate a JWT access token and return the associated user data.
+        The access token must be passed in the `Authorization: Bearer <token>` header.
+      security:
+        - ClientCredentials: []
+          ClientSecret: []
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Token is valid. Returns user data from claims.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDto"
+        "401":
+          description: Invalid or missing access token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: 401
+                message: Invalid access token
+                timestamp: "2026-06-07T12:00:00Z"
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /user/is-admin/{userId}:
+    get:
+      tags: [User]
+      summary: Check Admin Status
+      operationId: isAdmin
+      description: Check if a user has admin privileges.
+      security:
+        - ClientCredentials: []
+          ClientSecret: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The user ID to check.
+          example: crs7g8h9i0j1k2
+      responses:
+        "200":
+          description: Returns `true` or `false`.
+          content:
+            application/json:
+              schema:
+                type: boolean
+                example: false
+        "400":
+          description: userId is required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
