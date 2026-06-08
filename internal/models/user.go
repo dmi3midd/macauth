@@ -13,18 +13,18 @@ type User struct {
 }
 
 type UserDto struct {
-	UserId   string
-	Username string
-	Email    string
-	IsAdmin  bool
+	UserId   string `json:"userId"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	IsAdmin  bool   `json:"isAdmin"`
 }
 
-func NewUserDto(user *User) *UserDto {
+func (u *User) NewUserDto() *UserDto {
 	return &UserDto{
-		UserId:   user.Id,
-		Username: user.Username,
-		Email:    user.Email,
-		IsAdmin:  user.IsAdmin,
+		UserId:   u.Id,
+		Username: u.Username,
+		Email:    u.Email,
+		IsAdmin:  u.IsAdmin,
 	}
 }
 

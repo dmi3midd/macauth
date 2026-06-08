@@ -98,7 +98,7 @@ func (s *userService) Login(ctx context.Context, email, password, clientId strin
 		return nil, fmt.Errorf("%s: %w", op, ErrInvalidPassword)
 	}
 
-	userDto := models.NewUserDto(user)
+	userDto := user.NewUserDto()
 	tokens, tokenId, err := s.tokenService.GenerateTokens(*userDto, clientId)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -157,7 +157,7 @@ func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	userDto := models.NewUserDto(user)
+	userDto := user.NewUserDto()
 	tokens, newTokenId, err := s.tokenService.GenerateTokens(*userDto, clientId)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
