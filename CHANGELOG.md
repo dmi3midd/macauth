@@ -18,3 +18,7 @@
 - Refactored response structs.
 - Updated postman collection and added openapi spec.
 - Minor fixes and improvements.
+
+## [v2.0.1] - 2026-06-08
+
+- Added IsAdmin endpoint to postman collection.
