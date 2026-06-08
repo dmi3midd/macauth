@@ -18,3 +18,5 @@ pem:
   pubPath: ./storage/keys/public.pem
 log:
   logPath: ./storage/logs/macauth.log
+tokenCleaner:
+  interval: 24h

@@ -16,22 +16,17 @@ import (
 	"macauth/internal/logger"
 )
 
-func gracefulShutdown(apiServer *http.Server, done chan bool) {
-	// Create context that listens for the interrupt signal from the OS.
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
+func gracefulShutdown(ctx context.Context, apiServer *http.Server, done chan bool) {
 	// Listen for the interrupt signal.
 	<-ctx.Done()
 
-	// log.Println("shutting down gracefully, press Ctrl+C again to force")
-	stop() // Allow Ctrl+C to force shutdown
+	slog.Info("Shutting down HTTP server...")
 
 	// The context is used to inform the server it has 5 seconds to finish
 	// the request it is currently handling
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := apiServer.Shutdown(ctx); err != nil {
+	if err := apiServer.Shutdown(shutdownCtx); err != nil {
 		slog.Info(
 			"server forced to shutdown with error",
 			slog.String("error", err.Error()),
@@ -63,13 +58,17 @@ func main() {
 	}
 	defer db.Close()
 
-	server := api.NewServer(cfg, db)
+	// Create context that listens for the interrupt signal from the OS.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	server := api.NewServer(ctx, cfg, db)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)
 
 	// Run graceful shutdown in a separate goroutine
-	go gracefulShutdown(server, done)
+	go gracefulShutdown(ctx, server, done)
 
 	slog.Info(
 		"server is running",

@@ -1,19 +1,22 @@
 package api
 
 import (
+	"context"
 	errs "macauth/internal/errors"
 	"macauth/internal/handlers"
 	"macauth/internal/middlewares"
 	"macauth/internal/repositories"
 	"macauth/internal/services"
+	"macauth/internal/workers"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
 
-func (s *Server) RegisterRoutes() *chi.Mux {
+func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 	// env vars
 	apiKey, ok := os.LookupEnv("API_KEY")
 	if !ok {
@@ -24,6 +27,14 @@ func (s *Server) RegisterRoutes() *chi.Mux {
 	tokenRepo := repositories.NewTokenRepo(s.db.GetDB())
 	userRepo := repositories.NewUserRepo(s.db.GetDB())
 	clientRepo := repositories.NewClientRepo(s.db.GetDB())
+
+	// workers
+	cleanerInterval := 1 * time.Hour
+	if s.cfg.TokenCleaner.Interval > 0 {
+		cleanerInterval = s.cfg.TokenCleaner.Interval
+	}
+	cleaner := workers.NewTokenCleaner(cleanerInterval, tokenRepo)
+	go cleaner.Start(ctx)
 
 	// services
 	tokenService := services.NewTokenService(tokenRepo, &s.cfg.Keys)

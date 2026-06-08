@@ -146,11 +146,6 @@ func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string
 		return nil, fmt.Errorf("%s: %w", op, ErrInvalidRefreshToken)
 	}
 
-	if token.ExpiresAt.Before(time.Now()) {
-		_ = s.tokenService.RemoveToken(ctx, tokenId)
-		return nil, fmt.Errorf("%s: %w", op, ErrInvalidRefreshToken)
-	}
-
 	if err := s.tokenService.RemoveToken(ctx, tokenId); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

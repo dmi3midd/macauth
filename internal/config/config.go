@@ -38,12 +38,17 @@ type Log struct {
 	LogPath string `yaml:"logPath"`
 }
 
+type TokenCleaner struct {
+	Interval time.Duration `yaml:"interval"`
+}
+
 type Config struct {
-	Database   `yaml:"database"`
-	HTTPServer `yaml:"httpServer"`
-	PEM        `yaml:"pem"`
-	Log        `yaml:"log"`
-	Keys       KeysPair `yaml:"-"`
+	Database     `yaml:"database"`
+	HTTPServer   `yaml:"httpServer"`
+	PEM          `yaml:"pem"`
+	Log          `yaml:"log"`
+	TokenCleaner TokenCleaner `yaml:"tokenCleaner"`
+	Keys         KeysPair     `yaml:"-"`
 }
 
 func LoadConfig() (*Config, error) {

@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"macauth/internal/models"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
 
 var (
 	ErrTokenNotFound error = errors.New("token not found")
+	ErrNoRowsDeleted error = errors.New("no rows deleted")
 )
 
 type TokenRepository interface {
@@ -29,6 +31,8 @@ type TokenRepository interface {
 	DeleteById(ctx context.Context, id string) error
 	// DeleteByToken removes the Token entity by its refresh token.
 	DeleteByToken(ctx context.Context, refreshToken string) error
+	// DeleteExpired removes expired tokens.
+	DeleteExpired(ctx context.Context) error
 }
 
 type tokenRepository struct {
@@ -108,6 +112,23 @@ func (r *tokenRepository) DeleteByToken(ctx context.Context, refreshToken string
 	query := "DELETE FROM tokens WHERE refresh_token = $1"
 	if _, err := r.db.ExecContext(ctx, query, refreshToken); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
+}
+
+func (r *tokenRepository) DeleteExpired(ctx context.Context) error {
+	op := "TokenRepository.DeleteExpired"
+	query := "DELETE FROM tokens WHERE expires_at < $1"
+	result, err := r.db.ExecContext(ctx, query, time.Now())
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("%s: %w", op, ErrNoRowsDeleted)
 	}
 	return nil
 }

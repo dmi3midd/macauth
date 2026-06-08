@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net/http"
 
 	_ "github.com/joho/godotenv/autoload"
@@ -14,13 +15,13 @@ type Server struct {
 	cfg *config.Config
 }
 
-func NewServer(cfg *config.Config, db database.DBService) *http.Server {
+func NewServer(ctx context.Context, cfg *config.Config, db database.DBService) *http.Server {
 	s := &Server{
 		db:  db,
 		cfg: cfg,
 	}
 
-	router := s.RegisterRoutes()
+	router := s.RegisterRoutes(ctx)
 	return &http.Server{
 		Addr:         cfg.HTTPServer.Address,
 		Handler:      router,
