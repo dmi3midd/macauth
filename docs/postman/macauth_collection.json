@@ -232,10 +232,13 @@
                   "    console.log(\"Saved accessToken and refreshToken to environment\");",
                   "});",
                   "",
-                  "pm.test(\"Response contains user details\", function () {",
+                  "pm.test(\"Response contains user details and save userId\", function () {",
                   "    var jsonData = pm.response.json();",
                   "    pm.expect(jsonData).to.have.property(\"user\");",
-                  "    pm.expect(jsonData.user.Email).to.eql(pm.environment.get(\"userEmail\"));",
+                  "    pm.expect(jsonData.user.email).to.eql(pm.environment.get(\"userEmail\"));",
+                  "    pm.expect(jsonData.user).to.have.property(\"userId\");",
+                  "    pm.environment.set(\"userId\", jsonData.user.userId);",
+                  "    console.log(\"Saved userId to environment: \" + jsonData.user.userId);",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -335,6 +338,58 @@
               ]
             },
             "description": "Validate the current JWT access token."
+          },
+          "response": []
+        },
+        {
+          "name": "Is Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is a boolean\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.a('boolean');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-client-id",
+                "value": "{{clientId}}",
+                "type": "text"
+              },
+              {
+                "key": "x-client-secret",
+                "value": "{{clientSecret}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/user/is-admin/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "user",
+                "is-admin",
+                "{{userId}}"
+              ]
+            },
+            "description": "Check if a user has admin privileges. Returns a boolean value. Requires client credentials."
           },
           "response": []
         },
