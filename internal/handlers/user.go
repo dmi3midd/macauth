@@ -12,12 +12,17 @@ import (
 )
 
 type UserHandler struct {
-	userService services.UserService
+	userService          services.UserService
+	passwordResetService services.ResetService
 }
 
-func NewUserHandler(userService services.UserService) *UserHandler {
+func NewUserHandler(
+	userService services.UserService,
+	passwordResetService services.ResetService,
+) *UserHandler {
 	return &UserHandler{
-		userService: userService,
+		userService:          userService,
+		passwordResetService: passwordResetService,
 	}
 }
 
@@ -192,6 +197,80 @@ func (h *UserHandler) IsAdmin(w http.ResponseWriter, r *http.Request) error {
 	if err := json.NewEncoder(w).Encode(isAdmin); err != nil {
 		return errs.InternalServerError(err)
 	}
+
+	return nil
+}
+
+type InitiateResetRequest struct {
+	Email string `json:"email"`
+}
+
+type InitiateResetResponse struct {
+	ResetToken string `json:"resetToken"`
+	Email      string `json:"email"`
+}
+
+func (h *UserHandler) InitiateReset(w http.ResponseWriter, r *http.Request) error {
+	var reqBody InitiateResetRequest
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		return errs.NewBadRequestError(err, "Invalid request body")
+	}
+
+	ctx := r.Context()
+	userData, err := h.passwordResetService.InitiateReset(ctx, reqBody.Email)
+	if err != nil {
+		if errors.Is(err, services.ErrUserNotFound) {
+			return errs.NewNotFoundError(err, "User does not exist")
+		}
+		return errs.InternalServerError(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	response := InitiateResetResponse{
+		ResetToken: userData.ResetToken,
+		Email:      userData.Email,
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		return errs.InternalServerError(err)
+	}
+
+	return nil
+}
+
+type ConfirmResetRequest struct {
+	ResetToken  string `json:"resetToken"`
+	NewPassword string `json:"newPassword"`
+}
+
+func (h *UserHandler) ConfirmReset(w http.ResponseWriter, r *http.Request) error {
+	var reqBody ConfirmResetRequest
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		return errs.NewBadRequestError(err, "Invalid request body")
+	}
+
+	ctx := r.Context()
+	err := h.passwordResetService.ConfirmReset(ctx, reqBody.ResetToken, reqBody.NewPassword)
+	if err != nil {
+		if errors.Is(err, services.ErrUserNotFound) {
+			return errs.NewNotFoundError(err, "User does not exist")
+		}
+		if errors.Is(err, services.ErrTokenUsed) {
+			return errs.NewBadRequestError(err, "Token already used")
+		}
+		if errors.Is(err, services.ErrTokenExpired) {
+			return errs.NewBadRequestError(err, "Token expired")
+		}
+		if errors.Is(err, services.ErrInvalidToken) {
+			return errs.NewBadRequestError(err, "Invalid token")
+		}
+		return errs.InternalServerError(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 
 	return nil
 }

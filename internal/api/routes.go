@@ -27,6 +27,7 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 	tokenRepo := repositories.NewTokenRepo(s.db.GetDB())
 	userRepo := repositories.NewUserRepo(s.db.GetDB())
 	clientRepo := repositories.NewClientRepo(s.db.GetDB())
+	resetRepo := repositories.NewResetRepo(s.db.GetDB())
 
 	// workers
 	cleanerInterval := 1 * time.Hour
@@ -40,9 +41,10 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 	tokenService := services.NewTokenService(tokenRepo, &s.cfg.Keys)
 	userService := services.NewUserService(userRepo, tokenService)
 	clientService := services.NewClientService(clientRepo)
+	passwordResetService := services.NewResetService(resetRepo, userRepo, tokenRepo)
 
 	// handlers
-	userHandler := handlers.NewUserHandler(userService)
+	userHandler := handlers.NewUserHandler(userService, passwordResetService)
 	clientHandler := handlers.NewClientHandler(clientService)
 	tokenHandler := handlers.NewTokenHandler(tokenService)
 
@@ -79,6 +81,8 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 			r.Put("/refresh", errs.ErrorHandler(userHandler.Refresh))
 			r.Get("/validate", errs.ErrorHandler(tokenHandler.Validate))
 			r.Get("/is-admin/{userId}", errs.ErrorHandler(userHandler.IsAdmin))
+			r.Post("/reset", errs.ErrorHandler(userHandler.InitiateReset))
+			r.Post("/confirm-reset", errs.ErrorHandler(userHandler.ConfirmReset))
 		})
 	})
 

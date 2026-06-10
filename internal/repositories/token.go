@@ -33,6 +33,8 @@ type TokenRepository interface {
 	DeleteByToken(ctx context.Context, refreshToken string) error
 	// DeleteExpired removes expired tokens.
 	DeleteExpired(ctx context.Context) error
+	// DeleteByUserId removes tokens by user id.
+	DeleteByUserId(ctx context.Context, userId string) error
 }
 
 type tokenRepository struct {
@@ -47,7 +49,7 @@ func NewTokenRepo(db *sqlx.DB) TokenRepository {
 
 func (r *tokenRepository) GetById(ctx context.Context, id string) (*models.Token, error) {
 	op := "tokenRepository.GetById"
-	query := `SELECT id, refresh_token, user_id, client_id, expires_at 
+	query := `SELECT id, refresh_token, user_id, client_id, expires_at
 	FROM tokens WHERE id = $1
 	`
 	var token models.Token
@@ -63,7 +65,7 @@ func (r *tokenRepository) GetById(ctx context.Context, id string) (*models.Token
 
 func (r *tokenRepository) GetByToken(ctx context.Context, refreshToken string) (*models.Token, error) {
 	op := "tokenRepository.GetByToken"
-	query := `SELECT id, refresh_token, user_id, client_id, expires_at 
+	query := `SELECT id, refresh_token, user_id, client_id, expires_at
 	FROM tokens WHERE refresh_token = $1
 	`
 	var token models.Token
@@ -89,7 +91,7 @@ func (r *tokenRepository) Create(ctx context.Context, token *models.Token) (stri
 
 func (r *tokenRepository) Update(ctx context.Context, id, refreshToken string) (string, error) {
 	op := "tokenRepository.Update"
-	query := `UPDATE tokens SET refresh_token = $1 
+	query := `UPDATE tokens SET refresh_token = $1
 			WHERE id = $2`
 	_, err := r.db.ExecContext(ctx, query, refreshToken, id)
 	if err != nil {
@@ -129,6 +131,14 @@ func (r *tokenRepository) DeleteExpired(ctx context.Context) error {
 	}
 	if rowsAffected == 0 {
 		return fmt.Errorf("%s: %w", op, ErrNoRowsDeleted)
+	}
+	return nil
+}
+func (r *tokenRepository) DeleteByUserId(ctx context.Context, userId string) error {
+	op := "TokenRepository.DeleteByUserId"
+	query := "DELETE FROM tokens WHERE user_id = $1"
+	if _, err := r.db.ExecContext(ctx, query, userId); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
 }
