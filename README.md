@@ -141,3 +141,39 @@ func ValidateAccessToken(accessToken string, publicKey *rsa.PublicKey) (*UserDto
  }, tokenId, nil
 }
 ```
+
+---
+
+## 🔄 Password Reset Flow (Service-to-Service)
+
+Since `macauth` does not communicate with end-users directly, the password reset is a two-step flow managed by your consuming service:
+
+### 1. Initiate Password Reset
+When a user requests a password reset:
+1. Make a `POST` request to `/macauth/api/v1/user/reset` with the user's email:
+   ```json
+   {
+     "email": "user@example.com"
+   }
+   ```
+   *Note: This request requires `x-client-id` and `x-client-secret` headers.*
+2. `macauth` generates a secure reset token and returns it:
+   ```json
+   {
+     "resetToken": "generated-raw-token-here",
+     "email": "user@example.com"
+   }
+   ```
+3. Your consuming service constructs the reset link (e.g., `https://myapp.com/reset-password?token=generated-raw-token-here`) and sends it to the user via Email/SMS.
+
+### 2. Confirm Password Reset
+When the user submits their new password:
+1. Make a `POST` request to `/macauth/api/v1/user/confirm-reset` with the token and new password:
+   ```json
+   {
+     "resetToken": "generated-raw-token-here",
+     "newPassword": "NewSecurePassword123!"
+   }
+   ```
+2. `macauth` validates the token, hashes the new password, updates the user record, marks the token as used, and **invalidates all active sessions (Refresh Tokens)** for this user.
+   *Note: This request also requires `x-client-id` and `x-client-secret` headers.*

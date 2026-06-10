@@ -517,6 +517,123 @@
             "description": "Log out user by invalidating the refreshToken. Token is passed in request body."
           },
           "response": []
+        },
+        {
+          "name": "Initiate Password Reset",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Save resetToken to environment\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"resetToken\");",
+                  "    pm.environment.set(\"resetToken\", jsonData.resetToken);",
+                  "    console.log(\"Saved resetToken to environment: \" + jsonData.resetToken);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-client-id",
+                "value": "{{clientId}}",
+                "type": "text"
+              },
+              {
+                "key": "x-client-secret",
+                "value": "{{clientSecret}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/user/reset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "user",
+                "reset"
+              ]
+            },
+            "description": "Initiate password reset. Returns resetToken and email."
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm Password Reset",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-client-id",
+                "value": "{{clientId}}",
+                "type": "text"
+              },
+              {
+                "key": "x-client-secret",
+                "value": "{{clientSecret}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resetToken\": \"{{resetToken}}\",\n  \"newPassword\": \"NewPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/user/confirm-reset",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "user",
+                "confirm-reset"
+              ]
+            },
+            "description": "Confirm password reset and set new password."
+          },
+          "response": []
         }
       ]
     }

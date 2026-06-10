@@ -141,6 +141,40 @@ components:
           type: string
           description: Current refresh token to exchange.
 
+    InitiateResetRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+
+    InitiateResetResponse:
+      type: object
+      properties:
+        resetToken:
+          type: string
+          description: Raw token to be sent to the user via email.
+          example: crs7g8h9i0j1k2l3m4
+        email:
+          type: string
+          format: email
+          example: user@example.com
+
+    ConfirmResetRequest:
+      type: object
+      required: [resetToken, newPassword]
+      properties:
+        resetToken:
+          type: string
+          description: Raw token received by the user.
+          example: crs7g8h9i0j1k2l3m4
+        newPassword:
+          type: string
+          format: password
+          example: NewSecurePassword123!
+
     # -- Responses --
 
     LinkResponse:
@@ -556,6 +590,89 @@ paths:
                 example: false
         "400":
           description: userId is required.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /user/reset:
+    post:
+      tags: [User]
+      summary: Initiate Password Reset
+      operationId: initiateReset
+      description: |
+        Initiate a password reset for a user. Generates a short-lived reset token 
+        which is returned to the calling service. The calling service is responsible 
+        for sending the reset link to the user.
+      security:
+        - ClientCredentials: []
+          ClientSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InitiateResetRequest"
+      responses:
+        "200":
+          description: Reset token successfully generated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InitiateResetResponse"
+        "400":
+          description: Invalid request body.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User with this email does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /user/confirm-reset:
+    post:
+      tags: [User]
+      summary: Confirm Password Reset
+      operationId: confirmReset
+      description: |
+        Confirm a password reset using the generated reset token and update the user's password. 
+        Invalidates all active user sessions (refresh tokens).
+      security:
+        - ClientCredentials: []
+          ClientSecret: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmResetRequest"
+      responses:
+        "200":
+          description: Password successfully updated and all active sessions invalidated.
+        "400":
+          description: Invalid token, token used, expired token, or invalid request body.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: User does not exist.
           content:
             application/json:
               schema:
