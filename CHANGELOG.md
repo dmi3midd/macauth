@@ -22,3 +22,7 @@
 ## [v2.0.1] - 2026-06-08
 
 - Added IsAdmin endpoint to postman collection.
+
+## [v2.1.0] - 2026-06-10
+
+- Implemented password reset functionality.
