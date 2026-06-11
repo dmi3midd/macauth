@@ -100,9 +100,11 @@ components:
           type: string
           format: password
           example: Password123!
-        isAdmin:
-          type: boolean
-          default: false
+        permissions:
+          type: array
+          items:
+            type: string
+          example: ["pubex:read", "pubex:write"]
 
     LoginRequest:
       type: object
@@ -198,9 +200,11 @@ components:
           type: string
           format: email
           example: user@example.com
-        IsAdmin:
-          type: boolean
-          example: false
+        Permissions:
+          type: array
+          items:
+            type: string
+          example: ["pubex:read", "pubex:write"]
 
     AuthResponse:
       type: object
@@ -563,43 +567,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /user/is-admin/{userId}:
-    get:
-      tags: [User]
-      summary: Check Admin Status
-      operationId: isAdmin
-      description: Check if a user has admin privileges.
-      security:
-        - ClientCredentials: []
-          ClientSecret: []
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: The user ID to check.
-          example: crs7g8h9i0j1k2
-      responses:
-        "200":
-          description: Returns `true` or `false`.
-          content:
-            application/json:
-              schema:
-                type: boolean
-                example: false
-        "400":
-          description: userId is required.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Internal server error.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+
 
   /user/reset:
     post:

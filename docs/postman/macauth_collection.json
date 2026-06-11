@@ -193,7 +193,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"username\": \"{{userUsername}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"isAdmin\": false\n}"
+              "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"username\": \"{{userUsername}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"permissions\": [\"pubex:read\", \"pubex:write\"]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/macauth/api/v1/user/registration",
@@ -338,58 +338,6 @@
               ]
             },
             "description": "Validate the current JWT access token."
-          },
-          "response": []
-        },
-        {
-          "name": "Is Admin",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Response is a boolean\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.be.a('boolean');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-client-id",
-                "value": "{{clientId}}",
-                "type": "text"
-              },
-              {
-                "key": "x-client-secret",
-                "value": "{{clientSecret}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/user/is-admin/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "macauth",
-                "api",
-                "v1",
-                "user",
-                "is-admin",
-                "{{userId}}"
-              ]
-            },
-            "description": "Check if a user has admin privileges. Returns a boolean value. Requires client credentials."
           },
           "response": []
         },
