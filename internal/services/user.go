@@ -35,22 +35,30 @@ type UserService interface {
 	Refresh(ctx context.Context, refreshToken, clientId string) (*models.AuthDto, error)
 	// IsAdmin returns true if the user is an admin.
 	IsAdmin(ctx context.Context, userId string) (bool, error)
+	// GetPermissions returns the user's permissions.
+	GetPermissions(ctx context.Context, userId, clientId string) ([]models.Permission, error)
 }
 
 type userService struct {
-	userStore    repositories.UserRepository
-	tokenService TokenService
+	userStore       repositories.UserRepository
+	tokenService    TokenService
+	permissionStore repositories.PermissionRepository
 }
 
-func NewUserService(userStore repositories.UserRepository, tokenService TokenService) UserService {
+func NewUserService(
+	userStore repositories.UserRepository,
+	tokenService TokenService,
+	permissionStore repositories.PermissionRepository,
+) UserService {
 	return &userService{
-		userStore:    userStore,
-		tokenService: tokenService,
+		userStore:       userStore,
+		tokenService:    tokenService,
+		permissionStore: permissionStore,
 	}
 }
 
 func (s *userService) Registration(ctx context.Context, username, email, password, clientId string, isAdmin bool) error {
-	op := "user.service-Registration"
+	op := "UserService.Registration"
 
 	candidate, err := s.userStore.GetByEmail(ctx, email)
 	if err != nil && !errors.Is(err, repositories.ErrUserNotFound) {
@@ -84,7 +92,7 @@ func (s *userService) Registration(ctx context.Context, username, email, passwor
 }
 
 func (s *userService) Login(ctx context.Context, email, password, clientId string) (*models.AuthDto, error) {
-	op := "userService.Login"
+	op := "UserService.Login"
 
 	user, err := s.userStore.GetByEmail(ctx, email)
 	if err != nil {
@@ -116,7 +124,7 @@ func (s *userService) Login(ctx context.Context, email, password, clientId strin
 }
 
 func (s *userService) Logout(ctx context.Context, refreshToken string) error {
-	op := "user.service-Logout"
+	op := "UserService.Logout"
 	tokenId, _, err := s.tokenService.ValidateRefreshToken(refreshToken)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -131,7 +139,7 @@ func (s *userService) Logout(ctx context.Context, refreshToken string) error {
 }
 
 func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string) (*models.AuthDto, error) {
-	op := "user.service-Refresh"
+	op := "UserService.Refresh"
 
 	tokenId, userId, err := s.tokenService.ValidateRefreshToken(refreshToken)
 	if err != nil {
@@ -175,7 +183,7 @@ func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string
 }
 
 func (s *userService) IsAdmin(ctx context.Context, userId string) (bool, error) {
-	op := "user.service-IsAdmin"
+	op := "UserService.IsAdmin"
 
 	user, err := s.userStore.GetById(ctx, userId)
 	if err != nil {
@@ -185,4 +193,13 @@ func (s *userService) IsAdmin(ctx context.Context, userId string) (bool, error) 
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 	return user.IsAdmin, nil
+}
+
+func (s *userService) GetPermissions(ctx context.Context, userId, clientId string) ([]models.Permission, error) {
+	op := "UserService.GetPermissions"
+	permissions, err := s.permissionStore.GetPermissionsByUser(ctx, userId, clientId)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return permissions, nil
 }

@@ -28,6 +28,7 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 	userRepo := repositories.NewUserRepo(s.db.GetDB())
 	clientRepo := repositories.NewClientRepo(s.db.GetDB())
 	resetRepo := repositories.NewResetRepo(s.db.GetDB())
+	permissionRepo := repositories.NewPermissionRepo(s.db.GetDB())
 
 	// workers
 	cleanerInterval := 1 * time.Hour
@@ -39,7 +40,7 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 
 	// services
 	tokenService := services.NewTokenService(tokenRepo, &s.cfg.Keys)
-	userService := services.NewUserService(userRepo, tokenService)
+	userService := services.NewUserService(userRepo, tokenService, permissionRepo)
 	clientService := services.NewClientService(clientRepo)
 	passwordResetService := services.NewResetService(resetRepo, userRepo, tokenRepo)
 
