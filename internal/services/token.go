@@ -70,8 +70,9 @@ func (s *tokenService) GenerateTokens(user models.UserDto, clientId string) (*mo
 
 	// Access token
 	accessClaims := models.AccessClaims{
-		Username: user.Username,
-		Email:    user.Email,
+		Username:    user.Username,
+		Email:       user.Email,
+		Permissions: user.Permissions,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        id,
 			Issuer:    "macauth",
@@ -162,10 +163,10 @@ func (s *tokenService) ValidateAccessToken(accessToken string) (*models.UserDto,
 	}
 
 	return &models.UserDto{
-		UserId:   userId,
-		Username: claims.Username,
-		Email:    claims.Email,
-		IsAdmin:  claims.IsAdmin,
+		UserId:      userId,
+		Username:    claims.Username,
+		Email:       claims.Email,
+		Permissions: claims.Permissions,
 	}, tokenId, nil
 }
 

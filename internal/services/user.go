@@ -21,7 +21,7 @@ var (
 type UserService interface {
 	// Registration performs user registration and returns UserData struct.
 	// It returns ErrUserAlreadyExist if the user exist.
-	Registration(ctx context.Context, username, email, password, clientId string, isAdmin bool) error
+	Registration(ctx context.Context, username, email, password, clientId string, permissions []string) error
 	// Login performs user login and returns LoginResult struct.
 	// It returns ErrUserNotFound if no user are found.
 	// It returns ErrInvalidPassword if the password is invalid.
@@ -33,10 +33,6 @@ type UserService interface {
 	// It returns ErrUserNotFound if no user are found.
 	// Look at TokenService.ValidateRefreshToken for other errors.
 	Refresh(ctx context.Context, refreshToken, clientId string) (*models.AuthDto, error)
-	// IsAdmin returns true if the user is an admin.
-	IsAdmin(ctx context.Context, userId string) (bool, error)
-	// GetPermissions returns the user's permissions.
-	GetPermissions(ctx context.Context, userId, clientId string) ([]models.Permission, error)
 }
 
 type userService struct {
@@ -57,7 +53,7 @@ func NewUserService(
 	}
 }
 
-func (s *userService) Registration(ctx context.Context, username, email, password, clientId string, isAdmin bool) error {
+func (s *userService) Registration(ctx context.Context, username, email, password, clientId string, permissions []string) error {
 	op := "UserService.Registration"
 
 	candidate, err := s.userStore.GetByEmail(ctx, email)
@@ -79,12 +75,26 @@ func (s *userService) Registration(ctx context.Context, username, email, passwor
 		Id:             id,
 		Username:       username,
 		Email:          email,
-		IsAdmin:        isAdmin,
 		HashedPassword: string(hashedPassword),
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	}
 	if _, err := s.userStore.Create(ctx, user); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	permModels := make([]models.Permission, len(permissions))
+	for i, perm := range permissions {
+		permModels[i] = models.Permission{
+			Id:         xid.New().String(),
+			UserId:     id,
+			ClientId:   clientId,
+			Permission: perm,
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		}
+	}
+	if err := s.permissionStore.CreateMany(ctx, permModels); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -107,6 +117,12 @@ func (s *userService) Login(ctx context.Context, email, password, clientId strin
 	}
 
 	userDto := user.NewUserDto()
+	permissions, err := s.permissionStore.GetByUserIdAndClientId(ctx, user.Id, clientId)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	userDto.Permissions = permissions
+
 	tokens, tokenId, err := s.tokenService.GenerateTokens(*userDto, clientId)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -166,6 +182,12 @@ func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	userDto := user.NewUserDto()
+	permissions, err := s.permissionStore.GetByUserIdAndClientId(ctx, userId, clientId)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	userDto.Permissions = permissions
+
 	tokens, newTokenId, err := s.tokenService.GenerateTokens(*userDto, clientId)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -180,26 +202,4 @@ func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string
 		User:     *userDto,
 		Tokens:   *tokens,
 	}, nil
-}
-
-func (s *userService) IsAdmin(ctx context.Context, userId string) (bool, error) {
-	op := "UserService.IsAdmin"
-
-	user, err := s.userStore.GetById(ctx, userId)
-	if err != nil {
-		if errors.Is(err, repositories.ErrUserNotFound) {
-			return false, nil
-		}
-		return false, fmt.Errorf("%s: %w", op, err)
-	}
-	return user.IsAdmin, nil
-}
-
-func (s *userService) GetPermissions(ctx context.Context, userId, clientId string) ([]models.Permission, error) {
-	op := "UserService.GetPermissions"
-	permissions, err := s.permissionStore.GetPermissionsByUser(ctx, userId, clientId)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	return permissions, nil
 }

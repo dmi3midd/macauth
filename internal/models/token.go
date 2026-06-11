@@ -20,8 +20,8 @@ type TokensPair struct {
 }
 
 type AccessClaims struct {
-	Username string
-	Email    string
-	IsAdmin  bool
+	Username    string   `json:"username"`
+	Email       string   `json:"email"`
+	Permissions []string `json:"permissions"`
 	jwt.RegisteredClaims
 }

@@ -6,25 +6,24 @@ type User struct {
 	Id             string    `json:"id" db:"id"`
 	Username       string    `json:"username" db:"username"`
 	Email          string    `json:"email" db:"email"`
-	IsAdmin        bool      `json:"isAdmin" db:"is_admin"`
 	HashedPassword string    `json:"hashedPassword" db:"hashed_password"`
 	CreatedAt      time.Time `json:"createdAt" db:"created_at"`
 	UpdatedAt      time.Time `json:"updatedAt" db:"updated_at"`
 }
 
 type UserDto struct {
-	UserId   string `json:"userId"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	IsAdmin  bool   `json:"isAdmin"`
+	UserId      string   `json:"userId"`
+	Username    string   `json:"username"`
+	Email       string   `json:"email"`
+	Permissions []string `json:"permissions"`
 }
 
 func (u *User) NewUserDto() *UserDto {
 	return &UserDto{
-		UserId:   u.Id,
-		Username: u.Username,
-		Email:    u.Email,
-		IsAdmin:  u.IsAdmin,
+		UserId:      u.Id,
+		Username:    u.Username,
+		Email:       u.Email,
+		Permissions: []string{},
 	}
 }
 

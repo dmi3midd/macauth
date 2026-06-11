@@ -81,7 +81,6 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 			r.Delete("/logout", errs.ErrorHandler(userHandler.Logout))
 			r.Put("/refresh", errs.ErrorHandler(userHandler.Refresh))
 			r.Get("/validate", errs.ErrorHandler(tokenHandler.Validate))
-			r.Get("/is-admin/{userId}", errs.ErrorHandler(userHandler.IsAdmin))
 			r.Post("/reset", errs.ErrorHandler(userHandler.InitiateReset))
 			r.Post("/confirm-reset", errs.ErrorHandler(userHandler.ConfirmReset))
 		})

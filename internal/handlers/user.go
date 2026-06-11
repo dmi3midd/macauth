@@ -7,8 +7,6 @@ import (
 	"macauth/internal/models"
 	"macauth/internal/services"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
 )
 
 type UserHandler struct {
@@ -27,11 +25,11 @@ func NewUserHandler(
 }
 
 type RegistrationRequest struct {
-	ClientId string `json:"clientId"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	IsAdmin  bool   `json:"isAdmin"`
-	Password string `json:"password"`
+	ClientId    string   `json:"clientId"`
+	Username    string   `json:"username"`
+	Email       string   `json:"email"`
+	Permissions []string `json:"permissions"`
+	Password    string   `json:"password"`
 }
 
 func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error {
@@ -50,7 +48,7 @@ func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error
 		reqBody.Email,
 		reqBody.Password,
 		clientId,
-		reqBody.IsAdmin,
+		reqBody.Permissions,
 	); err != nil {
 		if errors.Is(err, services.ErrUserAlreadyExist) {
 			return errs.NewConflictError(err, "User already exist with this email")
@@ -173,28 +171,6 @@ func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		return errs.InternalServerError(err)
-	}
-
-	return nil
-}
-
-func (h *UserHandler) IsAdmin(w http.ResponseWriter, r *http.Request) error {
-	userId := chi.URLParam(r, "userId")
-	if userId == "" {
-		return errs.NewBadRequestError(errors.New("userId is required"), "userId is required")
-	}
-
-	ctx := r.Context()
-	isAdmin, err := h.userService.IsAdmin(ctx, userId)
-	if err != nil {
-		return errs.InternalServerError(err)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-
-	if err := json.NewEncoder(w).Encode(isAdmin); err != nil {
 		return errs.InternalServerError(err)
 	}
 
