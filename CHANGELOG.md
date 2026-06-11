@@ -26,3 +26,7 @@
 ## [v2.1.0] - 2026-06-10
 
 - Implemented password reset functionality.
+
+## [v2.2.0] - 2026-06-11
+
+- Implemented better permission system.

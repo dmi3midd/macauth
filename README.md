@@ -98,15 +98,17 @@ var (
 )
 
 type AccessClaims struct {
- Username string
- Email    string
+ Username    string   `json:"username"`
+ Email       string   `json:"email"`
+ Permissions []string `json:"permissions"`
  jwt.RegisteredClaims
 }
 
 type UserDto struct {
- UserId   string
- Username string
- Email    string
+ UserId      string   `json:"userId"`
+ Username    string   `json:"username"`
+ Email       string   `json:"email"`
+ Permissions []string `json:"permissions"`
 }
 
 func ValidateAccessToken(accessToken string, publicKey *rsa.PublicKey) (*UserDto, string, error) {
@@ -135,9 +137,10 @@ func ValidateAccessToken(accessToken string, publicKey *rsa.PublicKey) (*UserDto
  }
 
  return &UserDto{
-  UserId:   userId,
-  Username: claims.Username,
-  Email:    claims.Email,
+  UserId:      userId,
+  Username:    claims.Username,
+  Email:       claims.Email,
+  Permissions: claims.Permissions,
  }, tokenId, nil
 }
 ```
