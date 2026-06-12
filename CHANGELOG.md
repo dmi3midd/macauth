@@ -30,3 +30,7 @@
 ## [v2.2.0] - 2026-06-11
 
 - Implemented better permission system.
+
+## [v2.2.1] - 2026-06-12
+
+- Implemented request body binding and validation.
