@@ -2,17 +2,16 @@ package api
 
 import (
 	"context"
-	errs "macauth/internal/errors"
-	"macauth/internal/handlers"
-	"macauth/internal/middlewares"
-	"macauth/internal/repositories"
-	"macauth/internal/services"
-	"macauth/internal/workers"
+	"macauth/internal/auth"
+	"macauth/internal/client"
+	"macauth/internal/reset"
+	"macauth/internal/shared/middleware"
+	"macauth/internal/token"
 	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 )
 
@@ -24,34 +23,35 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 	}
 
 	// repositories
-	tokenRepo := repositories.NewTokenRepo(s.db.GetDB())
-	userRepo := repositories.NewUserRepo(s.db.GetDB())
-	clientRepo := repositories.NewClientRepo(s.db.GetDB())
-	resetRepo := repositories.NewResetRepo(s.db.GetDB())
-	permissionRepo := repositories.NewPermissionRepo(s.db.GetDB())
+	tokenRepo := token.NewTokenRepo(s.db.GetDB())
+	userRepo := auth.NewUserRepo(s.db.GetDB())
+	clientRepo := client.NewClientRepo(s.db.GetDB())
+	resetRepo := reset.NewResetRepo(s.db.GetDB())
+	permissionRepo := auth.NewPermissionRepo(s.db.GetDB())
 
 	// workers
 	cleanerInterval := 1 * time.Hour
 	if s.cfg.TokenCleaner.Interval > 0 {
 		cleanerInterval = s.cfg.TokenCleaner.Interval
 	}
-	cleaner := workers.NewTokenCleaner(cleanerInterval, tokenRepo)
+	cleaner := token.NewTokenCleaner(cleanerInterval, tokenRepo)
 	go cleaner.Start(ctx)
 
 	// services
-	tokenService := services.NewTokenService(tokenRepo, &s.cfg.Keys)
-	userService := services.NewUserService(userRepo, tokenService, permissionRepo)
-	clientService := services.NewClientService(clientRepo)
-	passwordResetService := services.NewResetService(resetRepo, userRepo, tokenRepo)
+	tokenService := token.NewTokenService(tokenRepo, &s.cfg.Keys)
+	userService := auth.NewUserService(userRepo, tokenService, permissionRepo)
+	clientService := client.NewClientService(clientRepo)
+	passwordResetService := reset.NewResetService(resetRepo, userRepo, tokenRepo)
 
 	// handlers
-	userHandler := handlers.NewUserHandler(userService, passwordResetService)
-	clientHandler := handlers.NewClientHandler(clientService)
-	tokenHandler := handlers.NewTokenHandler(tokenService)
+	userHandler := auth.NewUserHandler(userService)
+	clientHandler := client.NewClientHandler(clientService)
+	tokenHandler := token.NewTokenHandler(tokenService)
+	resetHandler := reset.NewResetHandler(passwordResetService)
 
 	// middlewares
-	clientValidator := middlewares.NewClientValidator(clientRepo)
-	apikeyValidator := middlewares.NewApiKeyValidator(apiKey)
+	clientValidator := client.NewClientValidator(clientRepo)
+	apikeyValidator := middleware.NewApiKeyValidator(apiKey)
 
 	// routes
 	mainRouter := chi.NewRouter()
@@ -63,27 +63,12 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
-	mainRouter.Use(middleware.RequestID)
-	mainRouter.Use(middleware.Recoverer)
+	mainRouter.Use(chimiddleware.RequestID)
+	mainRouter.Use(chimiddleware.Recoverer)
 
 	mainRouter.Route("/macauth/api/v1", func(r chi.Router) {
-		r.Route("/client", func(r chi.Router) {
-			r.Use(apikeyValidator.Validate())
-			r.Post("/", errs.ErrorHandler(clientHandler.Link))
-			r.Delete("/{clientId}", errs.ErrorHandler(clientHandler.Unlink))
-			r.Get("/public-key", errs.ErrorHandler(tokenHandler.GetPublicKey))
-		})
-
-		r.Route("/user", func(r chi.Router) {
-			r.Use(clientValidator.Validate())
-			r.Post("/registration", errs.ErrorHandler(userHandler.Registration))
-			r.Post("/login", errs.ErrorHandler(userHandler.Login))
-			r.Delete("/logout", errs.ErrorHandler(userHandler.Logout))
-			r.Put("/refresh", errs.ErrorHandler(userHandler.Refresh))
-			r.Get("/validate", errs.ErrorHandler(tokenHandler.Validate))
-			r.Post("/reset", errs.ErrorHandler(userHandler.InitiateReset))
-			r.Post("/confirm-reset", errs.ErrorHandler(userHandler.ConfirmReset))
-		})
+		r.Mount("/client", s.clientRouter(clientHandler, tokenHandler, apikeyValidator))
+		r.Mount("/user", s.userRouter(userHandler, tokenHandler, resetHandler, clientValidator))
 	})
 
 	return mainRouter
