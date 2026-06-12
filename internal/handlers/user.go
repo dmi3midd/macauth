@@ -7,11 +7,14 @@ import (
 	"macauth/internal/models"
 	"macauth/internal/services"
 	"net/http"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type UserHandler struct {
 	userService          services.UserService
 	passwordResetService services.ResetService
+	validate             *validator.Validate
 }
 
 func NewUserHandler(
@@ -21,25 +24,35 @@ func NewUserHandler(
 	return &UserHandler{
 		userService:          userService,
 		passwordResetService: passwordResetService,
+		validate:             validator.New(),
 	}
 }
 
 type RegistrationRequest struct {
-	ClientId    string   `json:"clientId"`
-	Username    string   `json:"username"`
-	Email       string   `json:"email"`
-	Permissions []string `json:"permissions"`
-	Password    string   `json:"password"`
+	ClientId    string   `json:"clientId" validate:"required,eq=20"`
+	Username    string   `json:"username" validate:"required,min=3,max=64"`
+	Email       string   `json:"email" validate:"required,email"`
+	Permissions []string `json:"permissions" validate:"required,min=1,max=10,dive,min=1,max=64"`
+	Password    string   `json:"password" validate:"required,min=8,max=64"`
+}
+
+func BindAndValidate[T any](r *http.Request, val *validator.Validate) (T, error) {
+	var body T
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		return body, errs.NewBadRequestError(err, "Invalid request body")
+	}
+	defer r.Body.Close()
+	if err := val.Struct(body); err != nil {
+		return body, errs.NewBadRequestError(err, "Validation failed: "+err.Error())
+	}
+	return body, nil
 }
 
 func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error {
-	var reqBody RegistrationRequest
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		return errs.InternalServerError(err)
+	reqBody, err := BindAndValidate[RegistrationRequest](r, h.validate)
+	if err != nil {
+		return err
 	}
-	defer r.Body.Close()
-
-	clientId := reqBody.ClientId
 
 	ctx := r.Context()
 	if err := h.userService.Registration(
@@ -47,7 +60,7 @@ func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error
 		reqBody.Username,
 		reqBody.Email,
 		reqBody.Password,
-		clientId,
+		reqBody.ClientId,
 		reqBody.Permissions,
 	); err != nil {
 		if errors.Is(err, services.ErrUserAlreadyExist) {
@@ -63,9 +76,9 @@ func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error
 }
 
 type LoginRequest struct {
-	ClientId string `json:"clientId"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	ClientId string `json:"clientId" validate:"required,eq=20"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,max=64"`
 }
 type LoginResponse struct {
 	User         models.UserDto `json:"user"`
@@ -74,16 +87,13 @@ type LoginResponse struct {
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
-	var reqBody LoginRequest
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		return errs.InternalServerError(err)
+	reqBody, err := BindAndValidate[LoginRequest](r, h.validate)
+	if err != nil {
+		return err
 	}
-	defer r.Body.Close()
-
-	clientId := reqBody.ClientId
 
 	ctx := r.Context()
-	userData, err := h.userService.Login(ctx, reqBody.Email, reqBody.Password, clientId)
+	userData, err := h.userService.Login(ctx, reqBody.Email, reqBody.Password, reqBody.ClientId)
 	if err != nil {
 		if errors.Is(err, services.ErrUserNotFound) {
 			return errs.NewNotFoundError(err, "User does not exist with this email")
@@ -111,17 +121,17 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 }
 
 type LogoutRequest struct {
-	RefreshToken string `json:"refreshToken"`
+	RefreshToken string `json:"refreshToken" validate:"required"`
 }
 
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) error {
-	var reqBody LogoutRequest
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		return errs.NewBadRequestError(err, "Invalid request body")
+	reqBody, err := BindAndValidate[LogoutRequest](r, h.validate)
+	if err != nil {
+		return err
 	}
-	refreshToken := reqBody.RefreshToken
+
 	ctx := r.Context()
-	if err := h.userService.Logout(ctx, refreshToken); err != nil {
+	if err := h.userService.Logout(ctx, reqBody.RefreshToken); err != nil {
 		return errs.InternalServerError(err)
 	}
 
@@ -132,8 +142,8 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) error {
 }
 
 type RefreshRequest struct {
-	ClientId     string `json:"clientId"`
-	RefreshToken string `json:"refreshToken"`
+	ClientId     string `json:"clientId" validate:"required,eq=20"`
+	RefreshToken string `json:"refreshToken" validate:"required"`
 }
 type RefreshResponse struct {
 	User         models.UserDto `json:"user"`
@@ -142,15 +152,13 @@ type RefreshResponse struct {
 }
 
 func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
-	var reqBody RefreshRequest
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		return errs.NewBadRequestError(err, "Invalid request body")
+	reqBody, err := BindAndValidate[RefreshRequest](r, h.validate)
+	if err != nil {
+		return err
 	}
-	refreshToken := reqBody.RefreshToken
-	clientId := reqBody.ClientId
 
 	ctx := r.Context()
-	userData, err := h.userService.Refresh(ctx, refreshToken, clientId)
+	userData, err := h.userService.Refresh(ctx, reqBody.RefreshToken, reqBody.ClientId)
 	if err != nil {
 		if errors.Is(err, services.ErrUserNotFound) {
 			return errs.NewNotFoundError(err, "User does not exist")
@@ -178,7 +186,7 @@ func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
 }
 
 type InitiateResetRequest struct {
-	Email string `json:"email"`
+	Email string `json:"email" validate:"required,email"`
 }
 
 type InitiateResetResponse struct {
@@ -187,9 +195,9 @@ type InitiateResetResponse struct {
 }
 
 func (h *UserHandler) InitiateReset(w http.ResponseWriter, r *http.Request) error {
-	var reqBody InitiateResetRequest
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		return errs.NewBadRequestError(err, "Invalid request body")
+	reqBody, err := BindAndValidate[InitiateResetRequest](r, h.validate)
+	if err != nil {
+		return err
 	}
 
 	ctx := r.Context()
@@ -217,18 +225,18 @@ func (h *UserHandler) InitiateReset(w http.ResponseWriter, r *http.Request) erro
 }
 
 type ConfirmResetRequest struct {
-	ResetToken  string `json:"resetToken"`
-	NewPassword string `json:"newPassword"`
+	ResetToken  string `json:"resetToken" validate:"required,eq=64"`
+	NewPassword string `json:"newPassword" validate:"required,min=8,max=64"`
 }
 
 func (h *UserHandler) ConfirmReset(w http.ResponseWriter, r *http.Request) error {
-	var reqBody ConfirmResetRequest
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
-		return errs.NewBadRequestError(err, "Invalid request body")
+	reqBody, err := BindAndValidate[ConfirmResetRequest](r, h.validate)
+	if err != nil {
+		return err
 	}
 
 	ctx := r.Context()
-	err := h.passwordResetService.ConfirmReset(ctx, reqBody.ResetToken, reqBody.NewPassword)
+	err = h.passwordResetService.ConfirmReset(ctx, reqBody.ResetToken, reqBody.NewPassword)
 	if err != nil {
 		if errors.Is(err, services.ErrUserNotFound) {
 			return errs.NewNotFoundError(err, "User does not exist")
