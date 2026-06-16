@@ -1,4 +1,4 @@
-package reset
+package models
 
 import "time"
 

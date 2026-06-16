@@ -1,18 +1,19 @@
-package token
+package handlers
 
 import (
 	"encoding/json"
 	"fmt"
+	"macauth/internal/auth/services"
 	"macauth/internal/shared/apierror"
 	"net/http"
 	"strings"
 )
 
 type TokenHandler struct {
-	tokenService TokenService
+	tokenService services.TokenService
 }
 
-func NewTokenHandler(tokenService TokenService) *TokenHandler {
+func NewTokenHandler(tokenService services.TokenService) *TokenHandler {
 	return &TokenHandler{
 		tokenService: tokenService,
 	}

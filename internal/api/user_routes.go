@@ -1,19 +1,17 @@
 package api
 
 import (
-	"macauth/internal/auth"
+	"macauth/internal/auth/handlers"
 	"macauth/internal/client"
-	"macauth/internal/reset"
 	"macauth/internal/shared/apierror"
-	"macauth/internal/token"
 
 	"github.com/go-chi/chi/v5"
 )
 
 func (s *Server) userRouter(
-	userHandler *auth.UserHandler,
-	tokenHandler *token.TokenHandler,
-	resetHandler *reset.ResetHandler,
+	userHandler *handlers.UserHandler,
+	tokenHandler *handlers.TokenHandler,
+	resetHandler *handlers.ResetHandler,
 	clientValidator *client.ClientValidator,
 ) chi.Router {
 	r := chi.NewRouter()

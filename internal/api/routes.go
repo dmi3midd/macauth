@@ -2,11 +2,12 @@ package api
 
 import (
 	"context"
-	"macauth/internal/auth"
+	"macauth/internal/auth/handlers"
+	"macauth/internal/auth/repositories"
+	"macauth/internal/auth/services"
+	"macauth/internal/auth/workers"
 	"macauth/internal/client"
-	"macauth/internal/reset"
 	"macauth/internal/shared/middleware"
-	"macauth/internal/token"
 	"os"
 	"time"
 
@@ -23,31 +24,31 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 	}
 
 	// repositories
-	tokenRepo := token.NewTokenRepo(s.db.GetDB())
-	userRepo := auth.NewUserRepo(s.db.GetDB())
+	tokenRepo := repositories.NewTokenRepo(s.db.GetDB())
+	userRepo := repositories.NewUserRepo(s.db.GetDB())
 	clientRepo := client.NewClientRepo(s.db.GetDB())
-	resetRepo := reset.NewResetRepo(s.db.GetDB())
-	permissionRepo := auth.NewPermissionRepo(s.db.GetDB())
+	resetRepo := repositories.NewResetRepo(s.db.GetDB())
+	permissionRepo := repositories.NewPermissionRepo(s.db.GetDB())
 
 	// workers
 	cleanerInterval := 1 * time.Hour
 	if s.cfg.TokenCleaner.Interval > 0 {
 		cleanerInterval = s.cfg.TokenCleaner.Interval
 	}
-	cleaner := token.NewTokenCleaner(cleanerInterval, tokenRepo)
+	cleaner := workers.NewTokenCleaner(cleanerInterval, tokenRepo)
 	go cleaner.Start(ctx)
 
 	// services
-	tokenService := token.NewTokenService(tokenRepo, &s.cfg.Keys)
-	userService := auth.NewUserService(userRepo, tokenService, permissionRepo)
+	tokenService := services.NewTokenService(tokenRepo, &s.cfg.Keys)
+	userService := services.NewUserService(userRepo, tokenService, permissionRepo)
 	clientService := client.NewClientService(clientRepo)
-	passwordResetService := reset.NewResetService(resetRepo, userRepo, tokenRepo)
+	passwordResetService := services.NewResetService(resetRepo, userRepo, tokenRepo)
 
 	// handlers
-	userHandler := auth.NewUserHandler(userService)
+	userHandler := handlers.NewUserHandler(userService)
 	clientHandler := client.NewClientHandler(clientService)
-	tokenHandler := token.NewTokenHandler(tokenService)
-	resetHandler := reset.NewResetHandler(passwordResetService)
+	tokenHandler := handlers.NewTokenHandler(tokenService)
+	resetHandler := handlers.NewResetHandler(passwordResetService)
 
 	// middlewares
 	clientValidator := client.NewClientValidator(clientRepo)

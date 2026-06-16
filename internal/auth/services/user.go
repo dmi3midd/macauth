@@ -1,10 +1,11 @@
-package auth
+package services
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"macauth/internal/token"
+	"macauth/internal/auth/models"
+	"macauth/internal/auth/repositories"
 	"time"
 
 	"github.com/rs/xid"
@@ -12,9 +13,9 @@ import (
 )
 
 var (
-	ErrUserAlreadyExist = errors.New("user already exist")
+	ErrUserAlreadyExist    = errors.New("user already exist")
 	ErrServiceUserNotFound = errors.New("user not found")
-	ErrInvalidPassword  = errors.New("invalid password")
+	ErrInvalidPassword     = errors.New("invalid password")
 )
 
 type UserService interface {
@@ -24,26 +25,26 @@ type UserService interface {
 	// Login performs user login and returns LoginResult struct.
 	// It returns ErrServiceUserNotFound if no user are found.
 	// It returns ErrInvalidPassword if the password is invalid.
-	Login(ctx context.Context, email, password, clientId string) (*token.AuthDto, error)
+	Login(ctx context.Context, email, password, clientId string) (*models.AuthDto, error)
 	// Logout performs logout user.
 	// Look at TokenService.ValidateRefreshToken for other errors.
 	Logout(ctx context.Context, refreshToken string) error
 	// Refresh performs refreshing access and refresh tokens.
 	// It returns ErrServiceUserNotFound if no user are found.
 	// Look at TokenService.ValidateRefreshToken for other errors.
-	Refresh(ctx context.Context, refreshToken, clientId string) (*token.AuthDto, error)
+	Refresh(ctx context.Context, refreshToken, clientId string) (*models.AuthDto, error)
 }
 
 type userService struct {
-	userStore       UserRepository
-	tokenService    token.TokenService
-	permissionStore PermissionRepository
+	userStore       repositories.UserRepository
+	tokenService    TokenService
+	permissionStore repositories.PermissionRepository
 }
 
 func NewUserService(
-	userStore UserRepository,
-	tokenService token.TokenService,
-	permissionStore PermissionRepository,
+	userStore repositories.UserRepository,
+	tokenService TokenService,
+	permissionStore repositories.PermissionRepository,
 ) UserService {
 	return &userService{
 		userStore:       userStore,
@@ -52,20 +53,13 @@ func NewUserService(
 	}
 }
 
-func (u *User) NewUserDto() *token.UserDto {
-	return &token.UserDto{
-		UserId:      u.Id,
-		Username:    u.Username,
-		Email:       u.Email,
-		Permissions: []string{},
-	}
-}
+
 
 func (s *userService) Registration(ctx context.Context, username, email, password, clientId string, permissions []string) error {
 	op := "UserService.Registration"
 
 	candidate, err := s.userStore.GetByEmail(ctx, email)
-	if err != nil && !errors.Is(err, ErrUserNotFound) {
+	if err != nil && !errors.Is(err, repositories.ErrUserNotFound) {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -79,7 +73,7 @@ func (s *userService) Registration(ctx context.Context, username, email, passwor
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	user := &User{
+	user := &models.User{
 		Id:             id,
 		Username:       username,
 		Email:          email,
@@ -91,9 +85,9 @@ func (s *userService) Registration(ctx context.Context, username, email, passwor
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	permModels := make([]Permission, len(permissions))
+	permModels := make([]models.Permission, len(permissions))
 	for i, perm := range permissions {
-		permModels[i] = Permission{
+		permModels[i] = models.Permission{
 			Id:         xid.New().String(),
 			UserId:     id,
 			ClientId:   clientId,
@@ -109,12 +103,12 @@ func (s *userService) Registration(ctx context.Context, username, email, passwor
 	return nil
 }
 
-func (s *userService) Login(ctx context.Context, email, password, clientId string) (*token.AuthDto, error) {
+func (s *userService) Login(ctx context.Context, email, password, clientId string) (*models.AuthDto, error) {
 	op := "UserService.Login"
 
 	user, err := s.userStore.GetByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repositories.ErrUserNotFound) {
 			return nil, fmt.Errorf("%s: %w", op, ErrServiceUserNotFound)
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -140,10 +134,10 @@ func (s *userService) Login(ctx context.Context, email, password, clientId strin
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &token.AuthDto{
+	return &models.AuthDto{
 		ClientId: clientId,
 		User:     *userDto,
-		Tokens:   *tokens,
+		Tokens:   models.TokensPair(*tokens),
 	}, nil
 }
 
@@ -154,7 +148,7 @@ func (s *userService) Logout(ctx context.Context, refreshToken string) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if err := s.tokenService.RemoveToken(ctx, tokenId); err != nil {
-		if errors.Is(err, token.ErrServiceTokenNotFound) {
+		if errors.Is(err, ErrServiceTokenNotFound) {
 			return nil
 		}
 		return fmt.Errorf("%s: %w", op, err)
@@ -162,7 +156,7 @@ func (s *userService) Logout(ctx context.Context, refreshToken string) error {
 	return nil
 }
 
-func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string) (*token.AuthDto, error) {
+func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string) (*models.AuthDto, error) {
 	op := "UserService.Refresh"
 
 	tokenId, userId, err := s.tokenService.ValidateRefreshToken(refreshToken)
@@ -175,16 +169,16 @@ func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	if foundToken.ClientId != clientId {
-		return nil, fmt.Errorf("%s: %w", op, token.ErrInvalidRefreshToken)
+		return nil, fmt.Errorf("%s: %w", op, ErrInvalidRefreshToken)
 	}
 
 	if err := s.tokenService.RemoveToken(ctx, tokenId); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	user, err := s.userStore.GetById(ctx, userId)
+		user, err := s.userStore.GetById(ctx, userId)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repositories.ErrUserNotFound) {
 			return nil, fmt.Errorf("%s: %w", op, ErrServiceUserNotFound)
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -205,9 +199,9 @@ func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &token.AuthDto{
+	return &models.AuthDto{
 		ClientId: clientId,
 		User:     *userDto,
-		Tokens:   *tokens,
+		Tokens:   models.TokensPair(*tokens),
 	}, nil
 }

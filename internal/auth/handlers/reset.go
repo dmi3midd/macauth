@@ -1,8 +1,10 @@
-package reset
+package handlers
 
 import (
 	"encoding/json"
 	"errors"
+	"macauth/internal/auth/repositories"
+	"macauth/internal/auth/services"
 	"macauth/internal/shared/apierror"
 	"macauth/internal/shared/httputil"
 	"net/http"
@@ -11,11 +13,11 @@ import (
 )
 
 type ResetHandler struct {
-	resetService ResetService
+	resetService services.ResetService
 	validate     *validator.Validate
 }
 
-func NewResetHandler(resetService ResetService) *ResetHandler {
+func NewResetHandler(resetService services.ResetService) *ResetHandler {
 	return &ResetHandler{
 		resetService: resetService,
 		validate:     validator.New(),
@@ -31,7 +33,7 @@ func (h *ResetHandler) InitiateReset(w http.ResponseWriter, r *http.Request) err
 	ctx := r.Context()
 	userData, err := h.resetService.InitiateReset(ctx, reqBody.Email)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repositories.ErrUserNotFound) {
 			return apierror.NewNotFoundError(err, "User does not exist")
 		}
 		return apierror.InternalServerError(err)
@@ -61,16 +63,16 @@ func (h *ResetHandler) ConfirmReset(w http.ResponseWriter, r *http.Request) erro
 	ctx := r.Context()
 	err = h.resetService.ConfirmReset(ctx, reqBody.ResetToken, reqBody.NewPassword)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
+		if errors.Is(err, repositories.ErrUserNotFound) {
 			return apierror.NewNotFoundError(err, "User does not exist")
 		}
-		if errors.Is(err, ErrTokenUsed) {
+		if errors.Is(err, services.ErrTokenUsed) {
 			return apierror.NewBadRequestError(err, "Token already used")
 		}
-		if errors.Is(err, ErrTokenExpired) {
+		if errors.Is(err, services.ErrTokenExpired) {
 			return apierror.NewBadRequestError(err, "Token expired")
 		}
-		if errors.Is(err, ErrInvalidToken) {
+		if errors.Is(err, services.ErrInvalidToken) {
 			return apierror.NewBadRequestError(err, "Invalid token")
 		}
 		return apierror.InternalServerError(err)
@@ -80,4 +82,18 @@ func (h *ResetHandler) ConfirmReset(w http.ResponseWriter, r *http.Request) erro
 	w.WriteHeader(http.StatusOK)
 
 	return nil
+}
+
+type InitiateResetRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+type InitiateResetResponse struct {
+	ResetToken string `json:"resetToken"`
+	Email      string `json:"email"`
+}
+
+type ConfirmResetRequest struct {
+	ResetToken  string `json:"resetToken" validate:"required,eq=64"`
+	NewPassword string `json:"newPassword" validate:"required,min=8,max=64"`
 }

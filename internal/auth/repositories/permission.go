@@ -1,15 +1,16 @@
-package auth
+package repositories
 
 import (
 	"context"
 	"fmt"
+	"macauth/internal/auth/models"
 
 	"github.com/jmoiron/sqlx"
 )
 
 type PermissionRepository interface {
 	GetByUserIdAndClientId(ctx context.Context, userId, clientId string) ([]string, error)
-	CreateMany(ctx context.Context, permissions []Permission) error
+	CreateMany(ctx context.Context, permissions []models.Permission) error
 	DeleteAllForUserAndClient(ctx context.Context, userId, clientId string) error
 }
 
@@ -43,7 +44,7 @@ func (r *permissionRepository) GetByUserIdAndClientId(ctx context.Context, userI
 	return permissions, nil
 }
 
-func (r *permissionRepository) CreateMany(ctx context.Context, permissions []Permission) error {
+func (r *permissionRepository) CreateMany(ctx context.Context, permissions []models.Permission) error {
 	op := "PermissionRepository.CreateMany"
 	if len(permissions) == 0 {
 		return nil

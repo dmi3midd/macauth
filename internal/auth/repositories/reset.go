@@ -1,10 +1,11 @@
-package reset
+package repositories
 
 import (
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"macauth/internal/auth/models"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -16,11 +17,11 @@ var (
 type ResetRepository interface {
 	// FindValidByTokenHash finds a PasswordReset entity by its token hash.
 	// Returns [ErrResetNotFound] if no reset is found.
-	FindValidByTokenHash(ctx context.Context, tokenHash string) (*PasswordReset, error)
+	FindValidByTokenHash(ctx context.Context, tokenHash string) (*models.PasswordReset, error)
 	// Create creates a PasswordReset entity and returns its id.
-	Create(ctx context.Context, reset *PasswordReset) (string, error)
+	Create(ctx context.Context, reset *models.PasswordReset) (string, error)
 	// Update updates the PasswordReset entity.
-	Update(ctx context.Context, reset *PasswordReset) error
+	Update(ctx context.Context, reset *models.PasswordReset) error
 }
 
 type resetRepository struct {
@@ -33,9 +34,9 @@ func NewResetRepo(db *sqlx.DB) ResetRepository {
 	}
 }
 
-func (r *resetRepository) FindValidByTokenHash(ctx context.Context, tokenHash string) (*PasswordReset, error) {
+func (r *resetRepository) FindValidByTokenHash(ctx context.Context, tokenHash string) (*models.PasswordReset, error) {
 	op := "ResetRepository.FindValidByTokenHash"
-	var reset PasswordReset
+	var reset models.PasswordReset
 	query := `
 	SELECT id, user_id, token_hash, expires_at, used_at, created_at
 	FROM password_resets 
@@ -52,7 +53,7 @@ func (r *resetRepository) FindValidByTokenHash(ctx context.Context, tokenHash st
 	return &reset, nil
 }
 
-func (r *resetRepository) Create(ctx context.Context, reset *PasswordReset) (string, error) {
+func (r *resetRepository) Create(ctx context.Context, reset *models.PasswordReset) (string, error) {
 	op := "ResetRepository.Create"
 	query := `
 	INSERT INTO password_resets 
@@ -67,7 +68,7 @@ func (r *resetRepository) Create(ctx context.Context, reset *PasswordReset) (str
 	return reset.Id, nil
 }
 
-func (r *resetRepository) Update(ctx context.Context, reset *PasswordReset) error {
+func (r *resetRepository) Update(ctx context.Context, reset *models.PasswordReset) error {
 	op := "ResetRepository.Update"
 	query := `
 	UPDATE password_resets 

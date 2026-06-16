@@ -1,4 +1,4 @@
-package auth
+package models
 
 import "time"
 
@@ -18,4 +18,13 @@ type Permission struct {
 	Permission string    `json:"permission" db:"permission"`
 	CreatedAt  time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
+}
+
+func (u *User) NewUserDto() *UserDto {
+	return &UserDto{
+		UserId:      u.Id,
+		Username:    u.Username,
+		Email:       u.Email,
+		Permissions: []string{},
+	}
 }

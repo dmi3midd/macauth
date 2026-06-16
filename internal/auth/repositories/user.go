@@ -1,10 +1,11 @@
-package auth
+package repositories
 
 import (
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"macauth/internal/auth/models"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -16,14 +17,14 @@ var (
 type UserRepository interface {
 	// GetById retrieves a User entity by its id.
 	// It returns ErrUserNotFound if no user are found.
-	GetById(ctx context.Context, userId string) (*User, error)
+	GetById(ctx context.Context, userId string) (*models.User, error)
 	// GetByEmail retrieves a User entity by its email.
 	// It returns ErrUserNotFound if no user are found.
-	GetByEmail(ctx context.Context, email string) (*User, error)
+	GetByEmail(ctx context.Context, email string) (*models.User, error)
 	// Create creates a User entity and returns it.
-	Create(ctx context.Context, user *User) (string, error)
+	Create(ctx context.Context, user *models.User) (string, error)
 	// Update updates the User entity.
-	Update(ctx context.Context, user *User) (string, error)
+	Update(ctx context.Context, user *models.User) (string, error)
 	// Delete removes the User entity.
 	Delete(ctx context.Context, userId string) error
 }
@@ -38,12 +39,12 @@ func NewUserRepo(db *sqlx.DB) UserRepository {
 	}
 }
 
-func (r *userRepository) GetById(ctx context.Context, userId string) (*User, error) {
+func (r *userRepository) GetById(ctx context.Context, userId string) (*models.User, error) {
 	op := "userRepository.GetById"
 	query := `SELECT id, username, email, hashed_password, created_at, updated_at
 	FROM users WHERE id = $1
 	`
-	var user User
+	var user models.User
 	err := r.db.GetContext(ctx, &user, query, userId)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -54,12 +55,12 @@ func (r *userRepository) GetById(ctx context.Context, userId string) (*User, err
 	return &user, nil
 }
 
-func (r *userRepository) GetByEmail(ctx context.Context, email string) (*User, error) {
+func (r *userRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	op := "userRepository.GetByEmail"
 	query := `SELECT id, username, email, hashed_password, created_at, updated_at 
 	FROM users WHERE email = $1
 	`
-	var user User
+	var user models.User
 	err := r.db.GetContext(ctx, &user, query, email)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -70,7 +71,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*User, e
 	return &user, nil
 }
 
-func (r *userRepository) Create(ctx context.Context, user *User) (string, error) {
+func (r *userRepository) Create(ctx context.Context, user *models.User) (string, error) {
 	op := "userRepository.Create"
 	query := `INSERT INTO users 
 		   (id, username, email, hashed_password, created_at, updated_at)
@@ -82,7 +83,7 @@ func (r *userRepository) Create(ctx context.Context, user *User) (string, error)
 	return user.Id, nil
 }
 
-func (r *userRepository) Update(ctx context.Context, user *User) (string, error) {
+func (r *userRepository) Update(ctx context.Context, user *models.User) (string, error) {
 	op := "userRepository.Update"
 	query := `UPDATE users 
 	SET username = :username, email = :email, hashed_password = :hashed_password, updated_at = :updated_at 

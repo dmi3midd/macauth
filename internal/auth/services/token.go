@@ -1,10 +1,12 @@
-package token
+package services
 
 import (
 	"context"
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"macauth/internal/auth/models"
+	"macauth/internal/auth/repositories"
 	"macauth/internal/config"
 	"time"
 
@@ -22,7 +24,7 @@ var (
 
 type TokenService interface {
 	// GenerateTokens generates pair with access and refresh tokens and token id (TokensPair, tokenId, error).
-	GenerateTokens(user UserDto, clientId string) (*TokensPair, string, error)
+	GenerateTokens(user models.UserDto, clientId string) (*models.TokensPair, string, error)
 	// ValidateRefreshToken validates refresh token and returns token and user id (tokenId, userId, error).
 	// It returns ("", "", error) if validation go wrong.
 	// It returns ErrUnexpectedSigningMethod if the token uses an unexpected signing method.
@@ -34,7 +36,7 @@ type TokenService interface {
 	// It returns ErrUnexpectedSigningMethod if the token uses an unexpected signing method.
 	// It returns ErrInvalidAccessToken if the token is invalid.
 	// It returns ErrSubjectAndIDNotFound if subject or token ID are not found in claims.
-	ValidateAccessToken(accessToken string) (*UserDto, string, error)
+	ValidateAccessToken(accessToken string) (*models.UserDto, string, error)
 	// SaveToken creates refresh token for the user.
 	SaveToken(ctx context.Context, refreshToken, userId, clientId, tokenId string) (string, error)
 	// RemoveToken removes refresh token.
@@ -42,24 +44,24 @@ type TokenService interface {
 	RemoveToken(ctx context.Context, id string) error
 	// FindToken finds and returns a Token entity by its refresh token string.
 	// It returns ErrServiceTokenNotFound if no token are found.
-	FindToken(ctx context.Context, id string) (*Token, error)
+	FindToken(ctx context.Context, id string) (*models.Token, error)
 	// GetPublicKey returns public rsa keys
 	GetPublicKey() rsa.PublicKey
 }
 
 type tokenService struct {
-	tokenStore TokenRepository
+	tokenStore repositories.TokenRepository
 	keys       config.KeysPair
 }
 
-func NewTokenService(tokenStore TokenRepository, keys *config.KeysPair) TokenService {
+func NewTokenService(tokenStore repositories.TokenRepository, keys *config.KeysPair) TokenService {
 	return &tokenService{
 		tokenStore: tokenStore,
 		keys:       *keys,
 	}
 }
 
-func (s *tokenService) GenerateTokens(user UserDto, clientId string) (*TokensPair, string, error) {
+func (s *tokenService) GenerateTokens(user models.UserDto, clientId string) (*models.TokensPair, string, error) {
 	op := "tokenService.GenerateTokens"
 	accessExpiry, _ := time.ParseDuration("30m")
 	refreshExpiry, _ := time.ParseDuration("336h")
@@ -67,7 +69,7 @@ func (s *tokenService) GenerateTokens(user UserDto, clientId string) (*TokensPai
 	id := xid.New().String()
 
 	// Access token
-	accessClaims := AccessClaims{
+	accessClaims := models.AccessClaims{
 		Username:    user.Username,
 		Email:       user.Email,
 		Permissions: user.Permissions,
@@ -101,7 +103,7 @@ func (s *tokenService) GenerateTokens(user UserDto, clientId string) (*TokensPai
 		return nil, "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &TokensPair{
+	return &models.TokensPair{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}, id, nil
@@ -135,9 +137,9 @@ func (s *tokenService) ValidateRefreshToken(refreshToken string) (string, string
 	return tokenId, userId, nil
 }
 
-func (s *tokenService) ValidateAccessToken(accessToken string) (*UserDto, string, error) {
+func (s *tokenService) ValidateAccessToken(accessToken string) (*models.UserDto, string, error) {
 	op := "tokenService.ValidateAccessToken"
-	claims := &AccessClaims{}
+	claims := &models.AccessClaims{}
 	token, err := jwt.ParseWithClaims(accessToken, claims, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("%s: %w %v", op, ErrUnexpectedSigningMethod, token.Header["alg"])
@@ -160,7 +162,7 @@ func (s *tokenService) ValidateAccessToken(accessToken string) (*UserDto, string
 		return nil, "", fmt.Errorf("%s: %w", op, ErrSubjectAndIDNotFound)
 	}
 
-	return &UserDto{
+	return &models.UserDto{
 		UserId:      userId,
 		Username:    claims.Username,
 		Email:       claims.Email,
@@ -187,7 +189,7 @@ func (s *tokenService) SaveToken(ctx context.Context, refreshToken, userId, clie
 		expiresAt = time.Now().Add(336 * time.Hour)
 	}
 
-	token := Token{
+	token := models.Token{
 		Id:           tokenId,
 		RefreshToken: refreshToken,
 		UserId:       userId,
@@ -209,11 +211,11 @@ func (s *tokenService) RemoveToken(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *tokenService) FindToken(ctx context.Context, id string) (*Token, error) {
+func (s *tokenService) FindToken(ctx context.Context, id string) (*models.Token, error) {
 	op := "tokenService.FindToken"
 	token, err := s.tokenStore.GetById(ctx, id)
 	if err != nil {
-		if errors.Is(err, ErrTokenNotFound) {
+		if errors.Is(err, repositories.ErrTokenNotFound) {
 			return nil, fmt.Errorf("%s: %w", op, ErrServiceTokenNotFound)
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
