@@ -1,4 +1,4 @@
-package services
+package service
 
 import (
 	"context"
@@ -7,8 +7,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"macauth/internal/auth/models"
-	"macauth/internal/auth/repositories"
+	"macauth/internal/domain"
+	"macauth/internal/repository"
 	"time"
 
 	"github.com/rs/xid"
@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	ErrTokenExpired    error = errors.New("token expired")
-	ErrTokenUsed       error = errors.New("token used")
-	ErrInvalidToken    error = errors.New("invalid token")
+	ErrTokenExpired error = errors.New("token expired")
+	ErrTokenUsed    error = errors.New("token used")
+	ErrInvalidToken error = errors.New("invalid token")
 )
 
 type ResetService interface {
@@ -34,12 +34,12 @@ type ResetService interface {
 }
 
 type resetService struct {
-	resetStore repositories.ResetRepository
-	userStore  repositories.UserRepository
-	tokenStore repositories.TokenRepository
+	resetStore repository.ResetRepository
+	userStore  repository.UserRepository
+	tokenStore repository.TokenRepository
 }
 
-func NewResetService(resetStore repositories.ResetRepository, userStore repositories.UserRepository, tokenStore repositories.TokenRepository) ResetService {
+func NewResetService(resetStore repository.ResetRepository, userStore repository.UserRepository, tokenStore repository.TokenRepository) ResetService {
 	return &resetService{
 		resetStore: resetStore,
 		userStore:  userStore,
@@ -56,8 +56,8 @@ func (s *resetService) InitiateReset(ctx context.Context, email string) (*ResetT
 	op := "ResetService.InitiateReset"
 	candidate, err := s.userStore.GetByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, repositories.ErrUserNotFound) {
-			return nil, fmt.Errorf("%s: %w", op, repositories.ErrUserNotFound)
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return nil, fmt.Errorf("%s: %w", op, repository.ErrUserNotFound)
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -65,7 +65,7 @@ func (s *resetService) InitiateReset(ctx context.Context, email string) (*ResetT
 	resetToken := rand.Text()
 	hashedToken := sha256.Sum256([]byte(resetToken))
 
-	resetEntity := &models.PasswordReset{
+	resetEntity := &domain.PasswordReset{
 		Id:        xid.New().String(),
 		UserId:    candidate.Id,
 		TokenHash: hex.EncodeToString(hashedToken[:]),
@@ -91,7 +91,7 @@ func (s *resetService) ConfirmReset(ctx context.Context, tokenStr string, newPas
 	hashedToken := sha256.Sum256([]byte(tokenStr))
 	candidateToken, err := s.resetStore.FindValidByTokenHash(ctx, hex.EncodeToString(hashedToken[:]))
 	if err != nil {
-		if errors.Is(err, repositories.ErrResetNotFound) {
+		if errors.Is(err, repository.ErrResetNotFound) {
 			return fmt.Errorf("%s: %w", op, ErrInvalidToken)
 		}
 		return fmt.Errorf("%s: %w", op, err)
@@ -107,8 +107,8 @@ func (s *resetService) ConfirmReset(ctx context.Context, tokenStr string, newPas
 
 	candidateUser, err := s.userStore.GetById(ctx, candidateToken.UserId)
 	if err != nil {
-		if errors.Is(err, repositories.ErrUserNotFound) {
-			return fmt.Errorf("%s: %w", op, repositories.ErrUserNotFound)
+		if errors.Is(err, ErrUserNotFound) {
+			return fmt.Errorf("%s: %w", op, ErrUserNotFound)
 		}
 		return fmt.Errorf("%s: %w", op, err)
 	}

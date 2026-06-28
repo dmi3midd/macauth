@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"macauth/internal/api"
 	"macauth/internal/config"
 	"macauth/internal/database"
 	"macauth/internal/logger"
+	"macauth/internal/server"
 )
 
 func gracefulShutdown(ctx context.Context, apiServer *http.Server, done chan bool) {
@@ -62,7 +62,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	server := api.NewServer(ctx, cfg, db)
+	server := server.NewServer(ctx, cfg, db)
 
 	// Create a done channel to signal when the shutdown is complete
 	done := make(chan bool, 1)

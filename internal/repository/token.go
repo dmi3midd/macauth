@@ -1,11 +1,11 @@
-package repositories
+package repository
 
 import (
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
-	"macauth/internal/auth/models"
+	"macauth/internal/domain"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -19,12 +19,12 @@ var (
 type TokenRepository interface {
 	// Get retrieves a Token entity by its id.
 	// It returns ErrTokenNotFound if no token are found.
-	GetById(ctx context.Context, id string) (*models.Token, error)
+	GetById(ctx context.Context, id string) (*domain.Token, error)
 	// Get retrieves a Token entity by its refresh token.
 	// It returns ErrTokenNotFound if no token are found.
-	GetByToken(ctx context.Context, refreshToken string) (*models.Token, error)
+	GetByToken(ctx context.Context, refreshToken string) (*domain.Token, error)
 	// Create creates a Token entity.
-	Create(ctx context.Context, token *models.Token) (string, error)
+	Create(ctx context.Context, token *domain.Token) (string, error)
 	// Update updates refresh token in the Token entity.
 	Update(ctx context.Context, id, refreshToken string) (string, error)
 	// DeleteById removes the Token entity by its id.
@@ -47,12 +47,12 @@ func NewTokenRepo(db *sqlx.DB) TokenRepository {
 	}
 }
 
-func (r *tokenRepository) GetById(ctx context.Context, id string) (*models.Token, error) {
+func (r *tokenRepository) GetById(ctx context.Context, id string) (*domain.Token, error) {
 	op := "tokenRepository.GetById"
 	query := `SELECT id, refresh_token, user_id, client_id, expires_at
 	FROM tokens WHERE id = $1
 	`
-	var token models.Token
+	var token domain.Token
 	err := r.db.GetContext(ctx, &token, query, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -63,12 +63,12 @@ func (r *tokenRepository) GetById(ctx context.Context, id string) (*models.Token
 	return &token, nil
 }
 
-func (r *tokenRepository) GetByToken(ctx context.Context, refreshToken string) (*models.Token, error) {
+func (r *tokenRepository) GetByToken(ctx context.Context, refreshToken string) (*domain.Token, error) {
 	op := "tokenRepository.GetByToken"
 	query := `SELECT id, refresh_token, user_id, client_id, expires_at
 	FROM tokens WHERE refresh_token = $1
 	`
-	var token models.Token
+	var token domain.Token
 	err := r.db.GetContext(ctx, &token, query, refreshToken)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -79,7 +79,7 @@ func (r *tokenRepository) GetByToken(ctx context.Context, refreshToken string) (
 	return &token, nil
 }
 
-func (r *tokenRepository) Create(ctx context.Context, token *models.Token) (string, error) {
+func (r *tokenRepository) Create(ctx context.Context, token *domain.Token) (string, error) {
 	op := "tokenRepository.Create"
 	query := `INSERT INTO tokens (id, refresh_token, user_id, client_id, expires_at)
 			  VALUES (:id, :refresh_token, :user_id, :client_id, :expires_at)`

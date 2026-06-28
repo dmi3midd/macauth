@@ -1,10 +1,9 @@
-package handlers
+package reset
 
 import (
 	"encoding/json"
 	"errors"
-	"macauth/internal/auth/repositories"
-	"macauth/internal/auth/services"
+	"macauth/internal/service"
 	"macauth/internal/shared/apierror"
 	"macauth/internal/shared/httputil"
 	"net/http"
@@ -13,11 +12,11 @@ import (
 )
 
 type ResetHandler struct {
-	resetService services.ResetService
+	resetService service.ResetService
 	validate     *validator.Validate
 }
 
-func NewResetHandler(resetService services.ResetService) *ResetHandler {
+func NewResetHandler(resetService service.ResetService) *ResetHandler {
 	return &ResetHandler{
 		resetService: resetService,
 		validate:     validator.New(),
@@ -33,7 +32,7 @@ func (h *ResetHandler) InitiateReset(w http.ResponseWriter, r *http.Request) err
 	ctx := r.Context()
 	userData, err := h.resetService.InitiateReset(ctx, reqBody.Email)
 	if err != nil {
-		if errors.Is(err, repositories.ErrUserNotFound) {
+		if errors.Is(err, service.ErrUserNotFound) {
 			return apierror.NewNotFoundError(err, "User does not exist")
 		}
 		return apierror.InternalServerError(err)
@@ -63,16 +62,16 @@ func (h *ResetHandler) ConfirmReset(w http.ResponseWriter, r *http.Request) erro
 	ctx := r.Context()
 	err = h.resetService.ConfirmReset(ctx, reqBody.ResetToken, reqBody.NewPassword)
 	if err != nil {
-		if errors.Is(err, repositories.ErrUserNotFound) {
+		if errors.Is(err, service.ErrUserNotFound) {
 			return apierror.NewNotFoundError(err, "User does not exist")
 		}
-		if errors.Is(err, services.ErrTokenUsed) {
+		if errors.Is(err, service.ErrTokenUsed) {
 			return apierror.NewBadRequestError(err, "Token already used")
 		}
-		if errors.Is(err, services.ErrTokenExpired) {
+		if errors.Is(err, service.ErrTokenExpired) {
 			return apierror.NewBadRequestError(err, "Token expired")
 		}
-		if errors.Is(err, services.ErrInvalidToken) {
+		if errors.Is(err, service.ErrInvalidToken) {
 			return apierror.NewBadRequestError(err, "Invalid token")
 		}
 		return apierror.InternalServerError(err)

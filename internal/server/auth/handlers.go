@@ -1,10 +1,10 @@
-package handlers
+package auth
 
 import (
 	"encoding/json"
 	"errors"
-	"macauth/internal/auth/models"
-	"macauth/internal/auth/services"
+	"macauth/internal/domain"
+	"macauth/internal/service"
 	"macauth/internal/shared/apierror"
 	"macauth/internal/shared/httputil"
 	"net/http"
@@ -13,12 +13,12 @@ import (
 )
 
 type UserHandler struct {
-	userService services.UserService
+	userService service.UserService
 	validate    *validator.Validate
 }
 
 func NewUserHandler(
-	userService services.UserService,
+	userService service.UserService,
 ) *UserHandler {
 	return &UserHandler{
 		userService: userService,
@@ -41,7 +41,7 @@ func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error
 		reqBody.ClientId,
 		reqBody.Permissions,
 	); err != nil {
-		if errors.Is(err, services.ErrUserAlreadyExist) {
+		if errors.Is(err, service.ErrUserAlreadyExist) {
 			return apierror.NewConflictError(err, "User already exist with this email")
 		}
 		return apierror.InternalServerError(err)
@@ -62,10 +62,10 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	userData, err := h.userService.Login(ctx, reqBody.Email, reqBody.Password, reqBody.ClientId)
 	if err != nil {
-		if errors.Is(err, services.ErrServiceUserNotFound) {
+		if errors.Is(err, service.ErrUserNotFound) {
 			return apierror.NewNotFoundError(err, "User does not exist with this email")
 		}
-		if errors.Is(err, services.ErrInvalidPassword) {
+		if errors.Is(err, service.ErrInvalidPassword) {
 			return apierror.NewBadRequestError(err, "Invalid password")
 		}
 		return apierror.InternalServerError(err)
@@ -113,10 +113,10 @@ func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context()
 	userData, err := h.userService.Refresh(ctx, reqBody.RefreshToken, reqBody.ClientId)
 	if err != nil {
-		if errors.Is(err, services.ErrServiceUserNotFound) {
+		if errors.Is(err, service.ErrUserNotFound) {
 			return apierror.NewNotFoundError(err, "User does not exist")
 		}
-		if errors.Is(err, services.ErrInvalidRefreshToken) {
+		if errors.Is(err, service.ErrInvalidRefreshToken) {
 			return apierror.NewUnauthorizedError(err, "Invalid refresh token")
 		}
 		return apierror.InternalServerError(err)
@@ -153,7 +153,7 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	User         models.UserDto `json:"user"`
+	User         domain.UserDto `json:"user"`
 	RefreshToken string         `json:"refreshToken"`
 	AccessToken  string         `json:"accessToken"`
 }
@@ -168,7 +168,7 @@ type RefreshRequest struct {
 }
 
 type RefreshResponse struct {
-	User         models.UserDto `json:"user"`
+	User         domain.UserDto `json:"user"`
 	RefreshToken string         `json:"refreshToken"`
 	AccessToken  string         `json:"accessToken"`
 }

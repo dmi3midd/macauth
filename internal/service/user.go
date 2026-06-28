@@ -1,11 +1,11 @@
-package services
+package service
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"macauth/internal/auth/models"
-	"macauth/internal/auth/repositories"
+	"macauth/internal/domain"
+	"macauth/internal/repository"
 	"time"
 
 	"github.com/rs/xid"
@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	ErrUserAlreadyExist    = errors.New("user already exist")
-	ErrServiceUserNotFound = errors.New("user not found")
-	ErrInvalidPassword     = errors.New("invalid password")
+	ErrUserAlreadyExist = errors.New("user already exist")
+	ErrUserNotFound     = errors.New("user not found")
+	ErrInvalidPassword  = errors.New("invalid password")
 )
 
 type UserService interface {
@@ -25,41 +25,36 @@ type UserService interface {
 	// Login performs user login and returns LoginResult struct.
 	// It returns ErrServiceUserNotFound if no user are found.
 	// It returns ErrInvalidPassword if the password is invalid.
-	Login(ctx context.Context, email, password, clientId string) (*models.AuthDto, error)
+	Login(ctx context.Context, email, password, clientId string) (*domain.AuthDto, error)
 	// Logout performs logout user.
 	// Look at TokenService.ValidateRefreshToken for other errors.
 	Logout(ctx context.Context, refreshToken string) error
 	// Refresh performs refreshing access and refresh tokens.
 	// It returns ErrServiceUserNotFound if no user are found.
 	// Look at TokenService.ValidateRefreshToken for other errors.
-	Refresh(ctx context.Context, refreshToken, clientId string) (*models.AuthDto, error)
+	Refresh(ctx context.Context, refreshToken, clientId string) (*domain.AuthDto, error)
 }
 
 type userService struct {
-	userStore       repositories.UserRepository
-	tokenService    TokenService
-	permissionStore repositories.PermissionRepository
+	userStore    repository.UserRepository
+	tokenService TokenService
 }
 
 func NewUserService(
-	userStore repositories.UserRepository,
+	userStore repository.UserRepository,
 	tokenService TokenService,
-	permissionStore repositories.PermissionRepository,
 ) UserService {
 	return &userService{
-		userStore:       userStore,
-		tokenService:    tokenService,
-		permissionStore: permissionStore,
+		userStore:    userStore,
+		tokenService: tokenService,
 	}
 }
-
-
 
 func (s *userService) Registration(ctx context.Context, username, email, password, clientId string, permissions []string) error {
 	op := "UserService.Registration"
 
 	candidate, err := s.userStore.GetByEmail(ctx, email)
-	if err != nil && !errors.Is(err, repositories.ErrUserNotFound) {
+	if err != nil && !errors.Is(err, repository.ErrUserNotFound) {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -73,7 +68,7 @@ func (s *userService) Registration(ctx context.Context, username, email, passwor
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	user := &models.User{
+	user := &domain.User{
 		Id:             id,
 		Username:       username,
 		Email:          email,
@@ -85,31 +80,16 @@ func (s *userService) Registration(ctx context.Context, username, email, passwor
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
-	permModels := make([]models.Permission, len(permissions))
-	for i, perm := range permissions {
-		permModels[i] = models.Permission{
-			Id:         xid.New().String(),
-			UserId:     id,
-			ClientId:   clientId,
-			Permission: perm,
-			CreatedAt:  time.Now(),
-			UpdatedAt:  time.Now(),
-		}
-	}
-	if err := s.permissionStore.CreateMany(ctx, permModels); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
 	return nil
 }
 
-func (s *userService) Login(ctx context.Context, email, password, clientId string) (*models.AuthDto, error) {
+func (s *userService) Login(ctx context.Context, email, password, clientId string) (*domain.AuthDto, error) {
 	op := "UserService.Login"
 
 	user, err := s.userStore.GetByEmail(ctx, email)
 	if err != nil {
-		if errors.Is(err, repositories.ErrUserNotFound) {
-			return nil, fmt.Errorf("%s: %w", op, ErrServiceUserNotFound)
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return nil, fmt.Errorf("%s: %w", op, ErrUserNotFound)
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -118,13 +98,7 @@ func (s *userService) Login(ctx context.Context, email, password, clientId strin
 		return nil, fmt.Errorf("%s: %w", op, ErrInvalidPassword)
 	}
 
-	userDto := user.NewUserDto()
-	permissions, err := s.permissionStore.GetByUserIdAndClientId(ctx, user.Id, clientId)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	userDto.Permissions = permissions
-
+	userDto := user.ToUserDto()
 	tokens, tokenId, err := s.tokenService.GenerateTokens(*userDto, clientId)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -134,10 +108,10 @@ func (s *userService) Login(ctx context.Context, email, password, clientId strin
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &models.AuthDto{
+	return &domain.AuthDto{
 		ClientId: clientId,
 		User:     *userDto,
-		Tokens:   models.TokensPair(*tokens),
+		Tokens:   domain.TokensPair(*tokens),
 	}, nil
 }
 
@@ -156,7 +130,7 @@ func (s *userService) Logout(ctx context.Context, refreshToken string) error {
 	return nil
 }
 
-func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string) (*models.AuthDto, error) {
+func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string) (*domain.AuthDto, error) {
 	op := "UserService.Refresh"
 
 	tokenId, userId, err := s.tokenService.ValidateRefreshToken(refreshToken)
@@ -176,20 +150,14 @@ func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-		user, err := s.userStore.GetById(ctx, userId)
+	user, err := s.userStore.GetById(ctx, userId)
 	if err != nil {
-		if errors.Is(err, repositories.ErrUserNotFound) {
-			return nil, fmt.Errorf("%s: %w", op, ErrServiceUserNotFound)
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return nil, fmt.Errorf("%s: %w", op, ErrUserNotFound)
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	userDto := user.NewUserDto()
-	permissions, err := s.permissionStore.GetByUserIdAndClientId(ctx, userId, clientId)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	userDto.Permissions = permissions
-
+	userDto := user.ToUserDto()
 	tokens, newTokenId, err := s.tokenService.GenerateTokens(*userDto, clientId)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
@@ -199,9 +167,9 @@ func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return &models.AuthDto{
+	return &domain.AuthDto{
 		ClientId: clientId,
 		User:     *userDto,
-		Tokens:   models.TokensPair(*tokens),
+		Tokens:   domain.TokensPair(*tokens),
 	}, nil
 }

@@ -4,17 +4,17 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"macauth/internal/auth/repositories"
+	"macauth/internal/repository"
 	"time"
 )
 
 // TokenCleaner is a worker that cleans expired tokens.
 type TokenCleaner struct {
 	cleanerInterval time.Duration
-	store           repositories.TokenRepository
+	store           repository.TokenRepository
 }
 
-func NewTokenCleaner(cleanerInterval time.Duration, store repositories.TokenRepository) *TokenCleaner {
+func NewTokenCleaner(cleanerInterval time.Duration, store repository.TokenRepository) *TokenCleaner {
 	return &TokenCleaner{
 		cleanerInterval: cleanerInterval,
 		store:           store,
@@ -45,7 +45,7 @@ func (tc *TokenCleaner) Start(ctx context.Context) {
 func (tc *TokenCleaner) cleanExpiredTokens(ctx context.Context) {
 	op := "TokenCleaner.cleanExpiredTokens"
 	if err := tc.store.DeleteExpired(ctx); err != nil {
-		if errors.Is(err, repositories.ErrNoRowsDeleted) {
+		if errors.Is(err, repository.ErrNoRowsDeleted) {
 			slog.Info("No tokens to delete", slog.String("op", op))
 			return
 		}

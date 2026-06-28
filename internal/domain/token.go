@@ -1,4 +1,4 @@
-package models
+package domain
 
 import (
 	"time"
@@ -19,13 +19,6 @@ type TokensPair struct {
 	AccessToken  string
 }
 
-type UserDto struct {
-	UserId      string   `json:"userId"`
-	Username    string   `json:"username"`
-	Email       string   `json:"email"`
-	Permissions []string `json:"permissions"`
-}
-
 type AuthDto struct {
 	ClientId string
 	User     UserDto
@@ -33,8 +26,6 @@ type AuthDto struct {
 }
 
 type AccessClaims struct {
-	Username    string   `json:"username"`
-	Email       string   `json:"email"`
-	Permissions []string `json:"permissions"`
+	User UserDto `json:"user"`
 	jwt.RegisteredClaims
 }

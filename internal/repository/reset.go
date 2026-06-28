@@ -1,11 +1,11 @@
-package repositories
+package repository
 
 import (
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
-	"macauth/internal/auth/models"
+	"macauth/internal/domain"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -17,11 +17,11 @@ var (
 type ResetRepository interface {
 	// FindValidByTokenHash finds a PasswordReset entity by its token hash.
 	// Returns [ErrResetNotFound] if no reset is found.
-	FindValidByTokenHash(ctx context.Context, tokenHash string) (*models.PasswordReset, error)
+	FindValidByTokenHash(ctx context.Context, tokenHash string) (*domain.PasswordReset, error)
 	// Create creates a PasswordReset entity and returns its id.
-	Create(ctx context.Context, reset *models.PasswordReset) (string, error)
+	Create(ctx context.Context, reset *domain.PasswordReset) (string, error)
 	// Update updates the PasswordReset entity.
-	Update(ctx context.Context, reset *models.PasswordReset) error
+	Update(ctx context.Context, reset *domain.PasswordReset) error
 }
 
 type resetRepository struct {
@@ -34,12 +34,12 @@ func NewResetRepo(db *sqlx.DB) ResetRepository {
 	}
 }
 
-func (r *resetRepository) FindValidByTokenHash(ctx context.Context, tokenHash string) (*models.PasswordReset, error) {
+func (r *resetRepository) FindValidByTokenHash(ctx context.Context, tokenHash string) (*domain.PasswordReset, error) {
 	op := "ResetRepository.FindValidByTokenHash"
-	var reset models.PasswordReset
+	var reset domain.PasswordReset
 	query := `
 	SELECT id, user_id, token_hash, expires_at, used_at, created_at
-	FROM password_resets 
+	FROM password_resets
 	WHERE token_hash = $1
 	`
 	err := r.db.GetContext(ctx, &reset, query, tokenHash)
@@ -53,10 +53,10 @@ func (r *resetRepository) FindValidByTokenHash(ctx context.Context, tokenHash st
 	return &reset, nil
 }
 
-func (r *resetRepository) Create(ctx context.Context, reset *models.PasswordReset) (string, error) {
+func (r *resetRepository) Create(ctx context.Context, reset *domain.PasswordReset) (string, error) {
 	op := "ResetRepository.Create"
 	query := `
-	INSERT INTO password_resets 
+	INSERT INTO password_resets
 	(id, user_id, token_hash, expires_at, used_at, created_at)
 	VALUES (:id, :user_id, :token_hash, :expires_at, :used_at, :created_at)
 	`
@@ -68,10 +68,10 @@ func (r *resetRepository) Create(ctx context.Context, reset *models.PasswordRese
 	return reset.Id, nil
 }
 
-func (r *resetRepository) Update(ctx context.Context, reset *models.PasswordReset) error {
+func (r *resetRepository) Update(ctx context.Context, reset *domain.PasswordReset) error {
 	op := "ResetRepository.Update"
 	query := `
-	UPDATE password_resets 
+	UPDATE password_resets
 	SET token_hash = :token_hash, used_at = :used_at
 	WHERE id = :id
 	`
