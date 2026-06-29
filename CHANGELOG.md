@@ -34,3 +34,11 @@
 ## [v2.2.1] - 2026-06-12
 
 - Implemented request body binding and validation.
+
+## [v3.0.0] - 2026-06-29
+
+- Removed client management.
+- Added proper permissions management.
+- Refactored project structure.
+- Improved error handling.
+- Updated docs.
