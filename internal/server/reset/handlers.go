@@ -2,7 +2,6 @@ package reset
 
 import (
 	"encoding/json"
-	"errors"
 	"macauth/internal/service"
 	"macauth/internal/shared/apierror"
 	"macauth/internal/shared/httputil"
@@ -26,16 +25,13 @@ func NewResetHandler(resetService service.ResetService) *ResetHandler {
 func (h *ResetHandler) InitiateReset(w http.ResponseWriter, r *http.Request) error {
 	reqBody, err := httputil.BindAndValidate[InitiateResetRequest](r, h.validate)
 	if err != nil {
-		return err
+		return apierror.MapError(err)
 	}
 
 	ctx := r.Context()
 	userData, err := h.resetService.InitiateReset(ctx, reqBody.Email)
 	if err != nil {
-		if errors.Is(err, service.ErrUserNotFound) {
-			return apierror.NewNotFoundError(err, "User does not exist")
-		}
-		return apierror.InternalServerError(err)
+		return apierror.MapError(err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -47,7 +43,7 @@ func (h *ResetHandler) InitiateReset(w http.ResponseWriter, r *http.Request) err
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		return apierror.InternalServerError(err)
+		return apierror.MapError(err)
 	}
 
 	return nil
@@ -56,25 +52,13 @@ func (h *ResetHandler) InitiateReset(w http.ResponseWriter, r *http.Request) err
 func (h *ResetHandler) ConfirmReset(w http.ResponseWriter, r *http.Request) error {
 	reqBody, err := httputil.BindAndValidate[ConfirmResetRequest](r, h.validate)
 	if err != nil {
-		return err
+		return apierror.MapError(err)
 	}
 
 	ctx := r.Context()
 	err = h.resetService.ConfirmReset(ctx, reqBody.ResetToken, reqBody.NewPassword)
 	if err != nil {
-		if errors.Is(err, service.ErrUserNotFound) {
-			return apierror.NewNotFoundError(err, "User does not exist")
-		}
-		if errors.Is(err, service.ErrTokenUsed) {
-			return apierror.NewBadRequestError(err, "Token already used")
-		}
-		if errors.Is(err, service.ErrTokenExpired) {
-			return apierror.NewBadRequestError(err, "Token expired")
-		}
-		if errors.Is(err, service.ErrInvalidToken) {
-			return apierror.NewBadRequestError(err, "Invalid token")
-		}
-		return apierror.InternalServerError(err)
+		return apierror.MapError(err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

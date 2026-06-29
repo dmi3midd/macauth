@@ -19,7 +19,7 @@ var (
 	ErrInvalidRefreshToken     = errors.New("invalid refresh token")
 	ErrInvalidAccessToken      = errors.New("invalid access token")
 	ErrSubjectAndIDNotFound    = errors.New("subject and id not found")
-	ErrServiceTokenNotFound    = errors.New("token not found")
+	ErrTokenNotFound           = errors.New("token not found")
 )
 
 type TokenService interface {
@@ -27,23 +27,23 @@ type TokenService interface {
 	GenerateTokens(user domain.UserDto, clientId string) (*domain.TokensPair, string, error)
 	// ValidateRefreshToken validates refresh token and returns token and user id (tokenId, userId, error).
 	// It returns ("", "", error) if validation go wrong.
-	// It returns ErrUnexpectedSigningMethod if the token uses an unexpected signing method.
-	// It returns ErrInvalidRefreshToken if the token is invalid.
-	// It returns ErrSubjectAndIDNotFound if subject or token ID are not found in claims.
+	// It returns [ErrUnexpectedSigningMethod] if the token uses an unexpected signing method.
+	// It returns [ErrInvalidRefreshToken] if the token is invalid.
+	// It returns [ErrSubjectAndIDNotFound] if subject or token ID are not found in claims.
 	ValidateRefreshToken(refreshToken string) (string, string, error)
 	// ValidateAccessToken validates access token and returns userDto and token id (userDto, tokenId, error).
 	// It returns (nil, "", error) if validation go wrong.
-	// It returns ErrUnexpectedSigningMethod if the token uses an unexpected signing method.
-	// It returns ErrInvalidAccessToken if the token is invalid.
-	// It returns ErrSubjectAndIDNotFound if subject or token ID are not found in claims.
+	// It returns [ErrUnexpectedSigningMethod] if the token uses an unexpected signing method.
+	// It returns [ErrInvalidAccessToken] if the token is invalid.
+	// It returns [ErrSubjectAndIDNotFound] if subject or token ID are not found in claims.
 	ValidateAccessToken(accessToken string) (*domain.UserDto, string, error)
 	// SaveToken creates refresh token for the user.
 	SaveToken(ctx context.Context, refreshToken, userId, clientId, tokenId string) (string, error)
 	// RemoveToken removes refresh token.
-	// It returns ErrServiceTokenNotFound if no token are found.
+	// It returns [ErrTokenNotFound] if no token are found.
 	RemoveToken(ctx context.Context, id string) error
 	// FindToken finds and returns a Token entity by its refresh token string.
-	// It returns ErrServiceTokenNotFound if no token are found.
+	// It returns [ErrTokenNotFound] if no token are found.
 	FindToken(ctx context.Context, id string) (*domain.Token, error)
 	// GetPublicKey returns public rsa keys
 	GetPublicKey() rsa.PublicKey
@@ -167,8 +167,6 @@ func (s *tokenService) ValidateAccessToken(accessToken string) (*domain.UserDto,
 	}, tokenId, nil
 }
 
-// TODO: review 3 methods below
-
 func (s *tokenService) SaveToken(ctx context.Context, refreshToken, userId, clientId, tokenId string) (string, error) {
 	op := "tokenService.SaveToken"
 
@@ -213,7 +211,7 @@ func (s *tokenService) FindToken(ctx context.Context, id string) (*domain.Token,
 	token, err := s.tokenStore.GetById(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrTokenNotFound) {
-			return nil, fmt.Errorf("%s: %w", op, ErrServiceTokenNotFound)
+			return nil, fmt.Errorf("%s: %w", op, ErrTokenNotFound)
 		}
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}

@@ -20,17 +20,17 @@ var (
 
 type UserService interface {
 	// Registration performs user registration and returns UserData struct.
-	// It returns ErrUserAlreadyExist if the user exist.
+	// It returns [ErrUserAlreadyExist] if the user exist.
 	Registration(ctx context.Context, username, email, password, clientId string, permissions []string) error
 	// Login performs user login and returns LoginResult struct.
-	// It returns ErrServiceUserNotFound if no user are found.
-	// It returns ErrInvalidPassword if the password is invalid.
+	// It returns [ErrUserNotFound] if no user are found.
+	// It returns [ErrInvalidPassword] if the password is invalid.
 	Login(ctx context.Context, email, password, clientId string) (*domain.AuthDto, error)
 	// Logout performs logout user.
 	// Look at TokenService.ValidateRefreshToken for other errors.
 	Logout(ctx context.Context, refreshToken string) error
 	// Refresh performs refreshing access and refresh tokens.
-	// It returns ErrServiceUserNotFound if no user are found.
+	// It returns [ErrUserNotFound] if no user are found.
 	// Look at TokenService.ValidateRefreshToken for other errors.
 	Refresh(ctx context.Context, refreshToken, clientId string) (*domain.AuthDto, error)
 }
@@ -122,7 +122,7 @@ func (s *userService) Logout(ctx context.Context, refreshToken string) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	if err := s.tokenService.RemoveToken(ctx, tokenId); err != nil {
-		if errors.Is(err, ErrServiceTokenNotFound) {
+		if errors.Is(err, ErrTokenNotFound) {
 			return nil
 		}
 		return fmt.Errorf("%s: %w", op, err)

@@ -8,6 +8,8 @@ import (
 	"macauth/internal/server/reset"
 	"macauth/internal/service"
 	"macauth/internal/shared/apierror"
+	"macauth/internal/workers"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
@@ -23,12 +25,12 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 	permissionRepo := repository.NewPermissionRepo(s.db.GetDB())
 
 	// workers
-	// cleanerInterval := 1 * time.Hour
-	// if s.cfg.TokenCleaner.Interval > 0 {
-	// 	cleanerInterval = s.cfg.TokenCleaner.Interval
-	// }
-	// cleaner := workers.NewTokenCleaner(cleanerInterval, tokenRepo)
-	// go cleaner.Start(ctx)
+	cleanerInterval := 1 * time.Hour
+	if s.cfg.TokenCleaner.Interval > 0 {
+		cleanerInterval = s.cfg.TokenCleaner.Interval
+	}
+	cleaner := workers.NewTokenCleaner(cleanerInterval, tokenRepo)
+	go cleaner.Start(ctx)
 
 	// services
 	tokenService := service.NewTokenService(tokenRepo, &s.cfg.Keys)
@@ -46,7 +48,7 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 
 	mainRouter.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true,
 		MaxAge:           300,

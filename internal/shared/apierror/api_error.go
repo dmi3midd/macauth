@@ -35,12 +35,12 @@ func newAPIError(code int, sysErr error, userMsg string) APIError {
 	}
 }
 
-func CustomError(code int, sysErr error, userMsg string) APIError {
+func NewCustomError(code int, sysErr error, userMsg string) APIError {
 	return newAPIError(code, sysErr, userMsg)
 }
 
 // InternalServerError creates 500 error
-func InternalServerError(sysErr error) APIError {
+func NewInternalServerError(sysErr error) APIError {
 	return newAPIError(500, sysErr, "Internal server error")
 }
 

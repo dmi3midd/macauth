@@ -16,10 +16,10 @@ var (
 
 type UserRepository interface {
 	// GetById retrieves a User entity by its id.
-	// It returns ErrUserNotFound if no user are found.
+	// It returns [ErrUserNotFound] if no user are found.
 	GetById(ctx context.Context, userId string) (*domain.User, error)
 	// GetByEmail retrieves a User entity by its email.
-	// It returns ErrUserNotFound if no user are found.
+	// It returns [ErrUserNotFound] if no user are found.
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 	// Create creates a User entity and returns it.
 	Create(ctx context.Context, user *domain.User) (string, error)

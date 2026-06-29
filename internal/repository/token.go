@@ -18,10 +18,10 @@ var (
 
 type TokenRepository interface {
 	// Get retrieves a Token entity by its id.
-	// It returns ErrTokenNotFound if no token are found.
+	// It returns [ErrTokenNotFound] if no token are found.
 	GetById(ctx context.Context, id string) (*domain.Token, error)
 	// Get retrieves a Token entity by its refresh token.
-	// It returns ErrTokenNotFound if no token are found.
+	// It returns [ErrTokenNotFound] if no token are found.
 	GetByToken(ctx context.Context, refreshToken string) (*domain.Token, error)
 	// Create creates a Token entity.
 	Create(ctx context.Context, token *domain.Token) (string, error)

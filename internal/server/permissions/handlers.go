@@ -35,13 +35,13 @@ type HasPermissionResponse struct {
 func (h *PermissionHandler) HasPermission(w http.ResponseWriter, r *http.Request) error {
 	reqBody, err := httputil.BindAndValidate[HasPermissionRequest](r, h.validate)
 	if err != nil {
-		return err
+		return apierror.MapError(err)
 	}
 
 	ctx := r.Context()
 	hasPermission, err := h.permissionService.HasPermissions(ctx, reqBody.UserId, reqBody.ClientId, reqBody.Permissions)
 	if err != nil {
-		return apierror.InternalServerError(err)
+		return apierror.MapError(err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -49,7 +49,7 @@ func (h *PermissionHandler) HasPermission(w http.ResponseWriter, r *http.Request
 
 	response := HasPermissionResponse{HasPermission: hasPermission}
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		return apierror.InternalServerError(err)
+		return apierror.MapError(err)
 	}
 
 	return nil
@@ -68,19 +68,19 @@ func (h *PermissionHandler) GetPermissions(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 	reqBody, err := httputil.BindAndValidate[GetPermissionsRequest](r, h.validate)
 	if err != nil {
-		return err
+		return apierror.MapError(err)
 	}
 
 	permissions, err := h.permissionService.GetPermissions(ctx, reqBody.UserId, reqBody.ClientId)
 	if err != nil {
-		return apierror.InternalServerError(err)
+		return apierror.MapError(err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	if err := json.NewEncoder(w).Encode(permissions); err != nil {
-		return apierror.InternalServerError(err)
+		return apierror.MapError(err)
 	}
 
 	return nil
@@ -104,7 +104,7 @@ func (h *PermissionHandler) AddPermissions(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := h.permissionService.AddPermissions(ctx, reqBody.UserId, reqBody.ClientId, reqBody.Permissions); err != nil {
-		return apierror.InternalServerError(err)
+		return apierror.MapError(err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -112,7 +112,7 @@ func (h *PermissionHandler) AddPermissions(w http.ResponseWriter, r *http.Reques
 
 	resp := AddPermissionsResponse{Permissions: reqBody.Permissions}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		return apierror.InternalServerError(err)
+		return apierror.MapError(err)
 	}
 
 	return nil
@@ -128,14 +128,15 @@ func (h *PermissionHandler) RemovePermissions(w http.ResponseWriter, r *http.Req
 	ctx := r.Context()
 	reqBody, err := httputil.BindAndValidate[RemovePermissionsRequest](r, h.validate)
 	if err != nil {
-		return err
+		return apierror.MapError(err)
 	}
 
 	if err := h.permissionService.RemovePermissions(ctx, reqBody.UserId, reqBody.ClientId, reqBody.Permissions); err != nil {
-		return apierror.InternalServerError(err)
+		return apierror.MapError(err)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+
 	return nil
 }
