@@ -24,6 +24,12 @@ func NewUserHandler(
 	}
 }
 
+type RegistrationRequest struct {
+	Username string `json:"username" validate:"required,min=3,max=64"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,max=64"`
+}
+
 func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error {
 	reqBody, err := httputil.BindAndValidate[RegistrationRequest](r, h.validate)
 	if err != nil {
@@ -36,8 +42,6 @@ func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error
 		reqBody.Username,
 		reqBody.Email,
 		reqBody.Password,
-		reqBody.ClientId,
-		reqBody.Permissions,
 	); err != nil {
 		return err
 	}
@@ -48,6 +52,18 @@ func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error
 	return nil
 }
 
+type LoginRequest struct {
+	ClientId string `json:"clientId" validate:"required"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,max=64"`
+}
+
+type LoginResponse struct {
+	User         domain.UserDto `json:"user"`
+	RefreshToken string         `json:"refreshToken"`
+	AccessToken  string         `json:"accessToken"`
+}
+
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	reqBody, err := httputil.BindAndValidate[LoginRequest](r, h.validate)
 	if err != nil {
@@ -55,7 +71,12 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	ctx := r.Context()
-	userData, err := h.userService.Login(ctx, reqBody.Email, reqBody.Password, reqBody.ClientId)
+	userData, err := h.userService.Login(
+		ctx,
+		reqBody.Email,
+		reqBody.Password,
+		reqBody.ClientId,
+	)
 	if err != nil {
 		return err
 	}
@@ -76,6 +97,10 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+type LogoutRequest struct {
+	RefreshToken string `json:"refreshToken" validate:"required"`
+}
+
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) error {
 	reqBody, err := httputil.BindAndValidate[LogoutRequest](r, h.validate)
 	if err != nil {
@@ -91,6 +116,17 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) error {
 	w.WriteHeader(http.StatusOK)
 
 	return nil
+}
+
+type RefreshRequest struct {
+	ClientId     string `json:"clientId" validate:"required"`
+	RefreshToken string `json:"refreshToken" validate:"required"`
+}
+
+type RefreshResponse struct {
+	User         domain.UserDto `json:"user"`
+	RefreshToken string         `json:"refreshToken"`
+	AccessToken  string         `json:"accessToken"`
 }
 
 func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
@@ -119,39 +155,4 @@ func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	return nil
-}
-
-type RegistrationRequest struct {
-	ClientId    string   `json:"clientId" validate:"required,eq=20"`
-	Username    string   `json:"username" validate:"required,min=3,max=64"`
-	Email       string   `json:"email" validate:"required,email"`
-	Permissions []string `json:"permissions" validate:"required,min=1,max=10,dive,min=1,max=64"`
-	Password    string   `json:"password" validate:"required,min=8,max=64"`
-}
-
-type LoginRequest struct {
-	ClientId string `json:"clientId" validate:"required,eq=20"`
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8,max=64"`
-}
-
-type LoginResponse struct {
-	User         domain.UserDto `json:"user"`
-	RefreshToken string         `json:"refreshToken"`
-	AccessToken  string         `json:"accessToken"`
-}
-
-type LogoutRequest struct {
-	RefreshToken string `json:"refreshToken" validate:"required"`
-}
-
-type RefreshRequest struct {
-	ClientId     string `json:"clientId" validate:"required,eq=20"`
-	RefreshToken string `json:"refreshToken" validate:"required"`
-}
-
-type RefreshResponse struct {
-	User         domain.UserDto `json:"user"`
-	RefreshToken string         `json:"refreshToken"`
-	AccessToken  string         `json:"accessToken"`
 }

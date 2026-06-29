@@ -21,6 +21,15 @@ func NewResetHandler(resetService service.ResetService) *ResetHandler {
 	}
 }
 
+type InitiateResetRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+type InitiateResetResponse struct {
+	ResetToken string `json:"resetToken"`
+	Email      string `json:"email"`
+}
+
 func (h *ResetHandler) InitiateReset(w http.ResponseWriter, r *http.Request) error {
 	reqBody, err := httputil.BindAndValidate[InitiateResetRequest](r, h.validate)
 	if err != nil {
@@ -48,6 +57,11 @@ func (h *ResetHandler) InitiateReset(w http.ResponseWriter, r *http.Request) err
 	return nil
 }
 
+type ConfirmResetRequest struct {
+	ResetToken  string `json:"resetToken" validate:"required"`
+	NewPassword string `json:"newPassword" validate:"required,min=8,max=64"`
+}
+
 func (h *ResetHandler) ConfirmReset(w http.ResponseWriter, r *http.Request) error {
 	reqBody, err := httputil.BindAndValidate[ConfirmResetRequest](r, h.validate)
 	if err != nil {
@@ -64,18 +78,4 @@ func (h *ResetHandler) ConfirmReset(w http.ResponseWriter, r *http.Request) erro
 	w.WriteHeader(http.StatusOK)
 
 	return nil
-}
-
-type InitiateResetRequest struct {
-	Email string `json:"email" validate:"required,email"`
-}
-
-type InitiateResetResponse struct {
-	ResetToken string `json:"resetToken"`
-	Email      string `json:"email"`
-}
-
-type ConfirmResetRequest struct {
-	ResetToken  string `json:"resetToken" validate:"required,eq=64"`
-	NewPassword string `json:"newPassword" validate:"required,min=8,max=64"`
 }

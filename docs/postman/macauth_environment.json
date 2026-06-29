@@ -9,26 +9,8 @@
       "enabled": true
     },
     {
-      "key": "apiKey",
-      "value": "ce7d6a4f56c227c0f9e638f323f485d9e71d170502dbd34fceee8e01967a6b0e",
-      "type": "secret",
-      "enabled": true
-    },
-    {
-      "key": "clientName",
-      "value": "my-app",
-      "type": "default",
-      "enabled": true
-    },
-    {
-      "key": "clientSecret",
-      "value": "my-app-secret-key-1234",
-      "type": "secret",
-      "enabled": true
-    },
-    {
       "key": "clientId",
-      "value": "",
+      "value": "test_client_id",
       "type": "default",
       "enabled": true
     },
@@ -63,6 +45,12 @@
       "enabled": true
     },
     {
+      "key": "resetToken",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
       "key": "userId",
       "value": "",
       "type": "default",
@@ -70,6 +58,6 @@
     }
   ],
   "_postman_variable_scope": "environment",
-  "_postman_exported_at": "2026-05-28T18:00:00.000Z",
+  "_postman_exported_at": "2026-06-29T09:37:00.000Z",
   "_postman_exported_by": "Antigravity"
 }

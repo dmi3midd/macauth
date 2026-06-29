@@ -68,8 +68,8 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 			r.Post("/confirm-reset", apierror.ErrorHandler(resetHandler.ConfirmReset))
 		})
 		r.Route("/permissions", func(r chi.Router) {
-			r.Get("/has", apierror.ErrorHandler(permissionHandler.HasPermission))
-			r.Get("/", apierror.ErrorHandler(permissionHandler.GetPermissions))
+			r.Post("/has", apierror.ErrorHandler(permissionHandler.HasPermission))
+			r.Post("/get", apierror.ErrorHandler(permissionHandler.GetPermissions))
 			r.Post("/", apierror.ErrorHandler(permissionHandler.AddPermissions))
 			r.Delete("/", apierror.ErrorHandler(permissionHandler.RemovePermissions))
 		})

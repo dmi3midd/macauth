@@ -64,11 +64,19 @@ func (r *permissionRepository) CreateMany(ctx context.Context, permissions []dom
 
 func (r *permissionRepository) DeleteMany(ctx context.Context, userId, clientId string, permissions []string) error {
 	op := "PermissionRepository.DeleteMany"
-	query := `
-	DELETE FROM permissions
-	WHERE user_id = $1 AND client_id = $2 AND permission = ANY($3)
-	`
-	_, err := r.db.ExecContext(ctx, query, userId, clientId, permissions)
+	if len(permissions) == 0 {
+		return nil
+	}
+	query, args, err := sqlx.In(`
+		DELETE FROM permissions
+		WHERE user_id = ? AND client_id = ? AND permission IN (?)
+	`, userId, clientId, permissions)
+	if err != nil {
+		return fmt.Errorf("%s: sqlx.In: %w", op, err)
+	}
+
+	query = r.db.Rebind(query)
+	_, err = r.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}

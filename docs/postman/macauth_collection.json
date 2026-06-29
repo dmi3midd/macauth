@@ -1,161 +1,13 @@
 {
   "info": {
     "_postman_id": "4a71de04-cd5e-49b2-be2b-c8ffea6b251a",
-    "name": "macauth API Collection",
+    "name": "Macauth API",
     "description": "API requests collection for macauth (service-to-service). All tokens and clientId are passed via request/response body.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "Client API",
-      "item": [
-        {
-          "name": "Link Client",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Extract and save clientId from body\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property(\"clientId\");",
-                  "    pm.environment.set(\"clientId\", jsonData.clientId);",
-                  "    console.log(\"Saved clientId to environment: \" + jsonData.clientId);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              },
-              {
-                "key": "x-api-key",
-                "value": "{{apiKey}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"{{clientName}}\",\n  \"secret\": \"{{clientSecret}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/client",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "macauth",
-                "api",
-                "v1",
-                "client"
-              ]
-            },
-            "description": "Register/Link a new client service to get a clientId. Returns clientId in response body. Requires API_KEY header."
-          },
-          "response": []
-        },
-        {
-          "name": "Get Public Key",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Verify response contains key details\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.be.an('object');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{apiKey}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/client/public-key",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "macauth",
-                "api",
-                "v1",
-                "client",
-                "public-key"
-              ]
-            },
-            "description": "Fetch the RSA public key used for local JWT signature validation."
-          },
-          "response": []
-        },
-        {
-          "name": "Unlink Client",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{apiKey}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/client/{{clientId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "macauth",
-                "api",
-                "v1",
-                "client",
-                "{{clientId}}"
-              ]
-            },
-            "description": "Remove the client and invalidate its credentials."
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "User API",
+      "name": "Auth API",
       "item": [
         {
           "name": "Register User",
@@ -179,24 +31,14 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
-              },
-              {
-                "key": "x-client-id",
-                "value": "{{clientId}}",
-                "type": "text"
-              },
-              {
-                "key": "x-client-secret",
-                "value": "{{clientSecret}}",
-                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"username\": \"{{userUsername}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"permissions\": [\"pubex:read\", \"pubex:write\"]\n}"
+              "raw": "{\n  \"username\": \"{{userUsername}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/user/registration",
+              "raw": "{{baseUrl}}/macauth/api/v1/auth/registration",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -204,7 +46,7 @@
                 "macauth",
                 "api",
                 "v1",
-                "user",
+                "auth",
                 "registration"
               ]
             },
@@ -252,16 +94,6 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
-              },
-              {
-                "key": "x-client-id",
-                "value": "{{clientId}}",
-                "type": "text"
-              },
-              {
-                "key": "x-client-secret",
-                "value": "{{clientSecret}}",
-                "type": "text"
               }
             ],
             "body": {
@@ -269,7 +101,7 @@
               "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/user/login",
+              "raw": "{{baseUrl}}/macauth/api/v1/auth/login",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -277,67 +109,11 @@
                 "macauth",
                 "api",
                 "v1",
-                "user",
+                "auth",
                 "login"
               ]
             },
             "description": "Log in a user. Returns accessToken and refreshToken in response body."
-          },
-          "response": []
-        },
-        {
-          "name": "Validate Token",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Validate email matches\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.Email).to.eql(pm.environment.get(\"userEmail\"));",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-client-id",
-                "value": "{{clientId}}",
-                "type": "text"
-              },
-              {
-                "key": "x-client-secret",
-                "value": "{{clientSecret}}",
-                "type": "text"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/user/validate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "macauth",
-                "api",
-                "v1",
-                "user",
-                "validate"
-              ]
-            },
-            "description": "Validate the current JWT access token."
           },
           "response": []
         },
@@ -372,16 +148,6 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
-              },
-              {
-                "key": "x-client-id",
-                "value": "{{clientId}}",
-                "type": "text"
-              },
-              {
-                "key": "x-client-secret",
-                "value": "{{clientSecret}}",
-                "type": "text"
               }
             ],
             "body": {
@@ -389,7 +155,7 @@
               "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/user/refresh",
+              "raw": "{{baseUrl}}/macauth/api/v1/auth/refresh",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -397,7 +163,7 @@
                 "macauth",
                 "api",
                 "v1",
-                "user",
+                "auth",
                 "refresh"
               ]
             },
@@ -433,16 +199,6 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
-              },
-              {
-                "key": "x-client-id",
-                "value": "{{clientId}}",
-                "type": "text"
-              },
-              {
-                "key": "x-client-secret",
-                "value": "{{clientSecret}}",
-                "type": "text"
               }
             ],
             "body": {
@@ -450,7 +206,7 @@
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/user/logout",
+              "raw": "{{baseUrl}}/macauth/api/v1/auth/logout",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -458,14 +214,19 @@
                 "macauth",
                 "api",
                 "v1",
-                "user",
+                "auth",
                 "logout"
               ]
             },
             "description": "Log out user by invalidating the refreshToken. Token is passed in request body."
           },
           "response": []
-        },
+        }
+      ]
+    },
+    {
+      "name": "Reset API",
+      "item": [
         {
           "name": "Initiate Password Reset",
           "event": [
@@ -495,16 +256,6 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
-              },
-              {
-                "key": "x-client-id",
-                "value": "{{clientId}}",
-                "type": "text"
-              },
-              {
-                "key": "x-client-secret",
-                "value": "{{clientSecret}}",
-                "type": "text"
               }
             ],
             "body": {
@@ -512,7 +263,7 @@
               "raw": "{\n  \"email\": \"{{userEmail}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/user/reset",
+              "raw": "{{baseUrl}}/macauth/api/v1/reset/initiate-reset",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -520,8 +271,8 @@
                 "macauth",
                 "api",
                 "v1",
-                "user",
-                "reset"
+                "reset",
+                "initiate-reset"
               ]
             },
             "description": "Initiate password reset. Returns resetToken and email."
@@ -550,16 +301,6 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
-              },
-              {
-                "key": "x-client-id",
-                "value": "{{clientId}}",
-                "type": "text"
-              },
-              {
-                "key": "x-client-secret",
-                "value": "{{clientSecret}}",
-                "type": "text"
               }
             ],
             "body": {
@@ -567,7 +308,7 @@
               "raw": "{\n  \"resetToken\": \"{{resetToken}}\",\n  \"newPassword\": \"NewPassword123!\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/user/confirm-reset",
+              "raw": "{{baseUrl}}/macauth/api/v1/reset/confirm-reset",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -575,11 +316,209 @@
                 "macauth",
                 "api",
                 "v1",
-                "user",
+                "reset",
                 "confirm-reset"
               ]
             },
             "description": "Confirm password reset and set new password."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Permissions API",
+      "item": [
+        {
+          "name": "Check Permissions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains has_permission\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"has_permission\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"client_id\": \"{{clientId}}\",\n  \"permissions\": [\"pubex:read\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/permissions/has",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "permissions",
+                "has"
+              ]
+            },
+            "description": "Check if a user has the specified permissions."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Permissions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is an array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"client_id\": \"{{clientId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/permissions/get",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "permissions",
+                "get"
+              ]
+            },
+            "description": "Get all permissions for a user within a client scope."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Permissions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains permissions\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"permissions\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"client_id\": \"{{clientId}}\",\n  \"permissions\": [\"pubex:admin\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "permissions"
+              ]
+            },
+            "description": "Add permissions to a user within a client scope."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Permissions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"client_id\": \"{{clientId}}\",\n  \"permissions\": [\"pubex:write\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "permissions"
+              ]
+            },
+            "description": "Remove permissions from a user within a client scope."
           },
           "response": []
         }
