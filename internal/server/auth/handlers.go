@@ -156,3 +156,37 @@ func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
 
 	return nil
 }
+
+type ValidateRequest struct {
+	AccessToken string `json:"accessToken" validate:"required"`
+}
+
+type ValidateResponse struct {
+	User domain.UserDto `json:"user"`
+}
+
+func (h *UserHandler) Validate(w http.ResponseWriter, r *http.Request) error {
+	reqBody, err := httputil.BindAndValidate[ValidateRequest](r, h.validate)
+	if err != nil {
+		return err
+	}
+
+	ctx := r.Context()
+	userData, err := h.userService.Validate(ctx, reqBody.AccessToken)
+	if err != nil {
+		return err
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	response := ValidateResponse{
+		User: *userData,
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		return err
+	}
+
+	return nil
+}

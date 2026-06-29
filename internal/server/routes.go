@@ -9,6 +9,7 @@ import (
 	"macauth/internal/service"
 	"macauth/internal/shared/apierror"
 	"macauth/internal/workers"
+	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -62,6 +63,7 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 			r.Post("/login", apierror.ErrorHandler(authHandler.Login))
 			r.Delete("/logout", apierror.ErrorHandler(authHandler.Logout))
 			r.Put("/refresh", apierror.ErrorHandler(authHandler.Refresh))
+			r.Post("/validate", apierror.ErrorHandler(authHandler.Validate))
 		})
 		r.Route("/reset", func(r chi.Router) {
 			r.Post("/initiate-reset", apierror.ErrorHandler(resetHandler.InitiateReset))
@@ -72,6 +74,14 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 			r.Post("/get", apierror.ErrorHandler(permissionHandler.GetPermissions))
 			r.Post("/", apierror.ErrorHandler(permissionHandler.AddPermissions))
 			r.Delete("/", apierror.ErrorHandler(permissionHandler.RemovePermissions))
+		})
+		r.Route("/public-key", func(r chi.Router) {
+			r.Get("/", apierror.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {
+				w.Header().Set("Content-Type", "text/plain")
+				w.WriteHeader(http.StatusOK)
+				_, err := w.Write(s.cfg.Keys.RawPublicKey)
+				return err
+			}))
 		})
 	})
 

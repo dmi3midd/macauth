@@ -221,6 +221,56 @@
             "description": "Log out user by invalidating the refreshToken. Token is passed in request body."
           },
           "response": []
+        },
+        {
+          "name": "Validate Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Validate email matches\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.user.email).to.eql(pm.environment.get(\"userEmail\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessToken\": \"{{accessToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/auth/validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "auth",
+                "validate"
+              ]
+            },
+            "description": "Validate the current access token."
+          },
+          "response": []
         }
       ]
     },
@@ -519,6 +569,44 @@
               ]
             },
             "description": "Remove permissions from a user within a client scope."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Public Key API",
+      "item": [
+        {
+          "name": "Get Public Key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/macauth/api/v1/public-key",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "macauth",
+                "api",
+                "v1",
+                "public-key"
+              ]
+            },
+            "description": "Get the public key in PEM format."
           },
           "response": []
         }

@@ -17,11 +17,13 @@ servers:
 
 tags:
   - name: Auth
-    description: User authentication operations (registration, login, logout, refresh).
+    description: User authentication operations (registration, login, logout, refresh, validation).
   - name: Reset
     description: Password reset operations.
   - name: Permissions
     description: User permission management.
+  - name: Token
+    description: Token validation and public key retrieval.
 
 # ---------------------------------------------------------------------------
 # Components
@@ -91,6 +93,14 @@ components:
         refreshToken:
           type: string
           description: Current refresh token to exchange.
+
+    ValidateRequest:
+      type: object
+      required: [accessToken]
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token to validate.
 
     # -- Reset Requests --
 
@@ -219,6 +229,12 @@ components:
         refreshToken:
           type: string
           description: JWT refresh token (RS256, 14 day expiry).
+
+    ValidateResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/UserDto"
 
     InitiateResetResponse:
       type: object
@@ -417,6 +433,43 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/validate:
+    post:
+      tags: [Auth]
+      summary: Validate Access Token
+      operationId: validateToken
+      description: |
+        Validate a JWT access token and return the associated user data.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateRequest"
+      responses:
+        "200":
+          description: Token is valid. Returns user data from claims.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidateResponse"
+        "401":
+          description: Invalid or missing access token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                code: 401
+                message: Invalid access token
+                timestamp: "2026-06-07T12:00:00Z"
         "500":
           description: Internal server error.
           content:
@@ -634,6 +687,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /public-key:
+    get:
+      tags: [Token]
+      summary: Get Public Key
+      operationId: getPublicKey
+      description: |
+        Retrieve the RSA public key in PEM format used to sign JWTs.
+        Consuming services can use this key to verify access tokens locally.
+      responses:
+        "200":
+          description: RSA public key in PEM format.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  -----BEGIN PUBLIC KEY-----
+                  MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv1lB1...
+                  -----END PUBLIC KEY-----
         "500":
           description: Internal server error.
           content:

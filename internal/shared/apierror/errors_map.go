@@ -26,7 +26,7 @@ var ErrorMap = map[error]func(err error) error{
 		return NewNotFoundError(err, "Subject and ID not found")
 	},
 	service.ErrInvalidAccessToken: func(err error) error {
-		return NewBadRequestError(err, "Invalid access token")
+		return NewUnauthorizedError(err, "User is unauthorized")
 	},
 	service.ErrTokenNotFound: func(err error) error {
 		return NewNotFoundError(err, "Token not found")

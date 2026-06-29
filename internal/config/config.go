@@ -72,8 +72,9 @@ func LoadConfig() (*Config, error) {
 }
 
 type KeysPair struct {
-	PrivateKey *rsa.PrivateKey
-	PublicKey  *rsa.PublicKey
+	PrivateKey   *rsa.PrivateKey
+	PublicKey    *rsa.PublicKey
+	RawPublicKey []byte
 }
 
 func LoadKeys(privPath, pubPath string) (*KeysPair, error) {
@@ -100,7 +101,8 @@ func LoadKeys(privPath, pubPath string) (*KeysPair, error) {
 	// log.Printf("Keys to string:\n%v", string(pubKeyData))
 
 	return &KeysPair{
-		PrivateKey: privateKey,
-		PublicKey:  publicKey,
+		PrivateKey:   privateKey,
+		PublicKey:    publicKey,
+		RawPublicKey: pubKeyData,
 	}, nil
 }

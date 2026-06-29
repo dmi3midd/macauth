@@ -16,6 +16,7 @@ var (
 	ErrUserAlreadyExist = errors.New("user already exist")
 	ErrUserNotFound     = errors.New("user not found")
 	ErrInvalidPassword  = errors.New("invalid password")
+	// ErrUnauthorized     = errors.New("user unauthorized")
 )
 
 type UserService interface {
@@ -33,6 +34,9 @@ type UserService interface {
 	// It returns [ErrUserNotFound] if no user are found.
 	// Look at TokenService.ValidateRefreshToken for other errors.
 	Refresh(ctx context.Context, refreshToken, clientId string) (*domain.AuthDto, error)
+	// Validate validates access token and returns User data.
+	// Look at TokenService.ValidateAccessToken for other errors.
+	Validate(ctx context.Context, accessToken string) (*domain.UserDto, error)
 }
 
 type userService struct {
@@ -172,4 +176,19 @@ func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string
 		User:     *userDto,
 		Tokens:   domain.TokensPair(*tokens),
 	}, nil
+}
+
+func (s *userService) Validate(ctx context.Context, accessToken string) (*domain.UserDto, error) {
+	op := "UserService.Validate"
+	userDto, tokenId, err := s.tokenService.ValidateAccessToken(accessToken)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if _, err := s.tokenService.FindToken(ctx, tokenId); err != nil {
+		if errors.Is(err, repository.ErrTokenNotFound) {
+			return nil, fmt.Errorf("%s: %w", op, ErrInvalidAccessToken)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return userDto, nil
 }
