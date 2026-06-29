@@ -20,10 +20,11 @@ func ErrorHandler(fn AppHandler) http.HandlerFunc {
 }
 
 func HandleError(w http.ResponseWriter, r *http.Request, err error) {
+	mappedErr := MapError(err)
 	var apiErr APIError
 	reqID := middleware.GetReqID(r.Context())
 
-	if errors.As(err, &apiErr) {
+	if errors.As(mappedErr, &apiErr) {
 		slog.Error(
 			"failed to response",
 			slog.String("request id", reqID),

@@ -1,6 +1,10 @@
 package apierror
 
-import "macauth/internal/service"
+import (
+	"errors"
+
+	"macauth/internal/service"
+)
 
 var ErrorMap = map[error]func(err error) error{
 	service.ErrUserAlreadyExist: func(err error) error {
@@ -51,8 +55,17 @@ func MapError(err error) error {
 	if err == nil {
 		return nil
 	}
-	if mappedErr, ok := ErrorMap[err]; ok {
-		return mappedErr(err)
+
+	var apiErr APIError
+	if errors.As(err, &apiErr) {
+		return err
 	}
+
+	for serviceErr, mapFn := range ErrorMap {
+		if errors.Is(err, serviceErr) {
+			return mapFn(err)
+		}
+	}
+
 	return NewInternalServerError(err)
 }

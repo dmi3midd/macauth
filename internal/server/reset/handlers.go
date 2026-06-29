@@ -3,7 +3,6 @@ package reset
 import (
 	"encoding/json"
 	"macauth/internal/service"
-	"macauth/internal/shared/apierror"
 	"macauth/internal/shared/httputil"
 	"net/http"
 
@@ -25,13 +24,13 @@ func NewResetHandler(resetService service.ResetService) *ResetHandler {
 func (h *ResetHandler) InitiateReset(w http.ResponseWriter, r *http.Request) error {
 	reqBody, err := httputil.BindAndValidate[InitiateResetRequest](r, h.validate)
 	if err != nil {
-		return apierror.MapError(err)
+		return err
 	}
 
 	ctx := r.Context()
 	userData, err := h.resetService.InitiateReset(ctx, reqBody.Email)
 	if err != nil {
-		return apierror.MapError(err)
+		return err
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -43,7 +42,7 @@ func (h *ResetHandler) InitiateReset(w http.ResponseWriter, r *http.Request) err
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		return apierror.MapError(err)
+		return err
 	}
 
 	return nil
@@ -52,13 +51,13 @@ func (h *ResetHandler) InitiateReset(w http.ResponseWriter, r *http.Request) err
 func (h *ResetHandler) ConfirmReset(w http.ResponseWriter, r *http.Request) error {
 	reqBody, err := httputil.BindAndValidate[ConfirmResetRequest](r, h.validate)
 	if err != nil {
-		return apierror.MapError(err)
+		return err
 	}
 
 	ctx := r.Context()
 	err = h.resetService.ConfirmReset(ctx, reqBody.ResetToken, reqBody.NewPassword)
 	if err != nil {
-		return apierror.MapError(err)
+		return err
 	}
 
 	w.Header().Set("Content-Type", "application/json")
