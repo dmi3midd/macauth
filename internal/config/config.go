@@ -10,7 +10,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Database struct {
+type Postgres struct {
 	Name         string        `yaml:"dbname"`
 	Host         string        `yaml:"host"`
 	Port         int           `yaml:"port"`
@@ -43,12 +43,12 @@ type TokenCleaner struct {
 }
 
 type Config struct {
-	Database     `yaml:"database"`
+	Postgres     `yaml:"postgres"`
 	HTTPServer   `yaml:"httpServer"`
 	PEM          `yaml:"pem"`
 	Log          `yaml:"log"`
-	TokenCleaner TokenCleaner `yaml:"tokenCleaner"`
-	Keys         KeysPair     `yaml:"-"`
+	TokenCleaner `yaml:"tokenCleaner"`
+	Keys         KeysPair `yaml:"-"`
 }
 
 func LoadConfig() (*Config, error) {

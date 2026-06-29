@@ -1,6 +1,6 @@
-database:
+postgres:
   dbname: macauth
-  host: localhost
+  host: postgres
   port: 5432
   user: macauth_user
   password: macauth_9876

@@ -7,15 +7,15 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 
 	"macauth/internal/config"
-	"macauth/internal/database"
+	"macauth/internal/postgres"
 )
 
 type Server struct {
-	db  database.DBService
+	db  postgres.PostgresService
 	cfg *config.Config
 }
 
-func NewServer(ctx context.Context, cfg *config.Config, db database.DBService) *http.Server {
+func NewServer(ctx context.Context, cfg *config.Config, db postgres.PostgresService) *http.Server {
 	s := &Server{
 		db:  db,
 		cfg: cfg,

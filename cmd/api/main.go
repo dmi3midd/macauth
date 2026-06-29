@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"macauth/internal/config"
-	"macauth/internal/database"
 	"macauth/internal/logger"
+	"macauth/internal/postgres"
 	"macauth/internal/server"
 )
 
@@ -51,7 +51,7 @@ func main() {
 	}
 	defer logFile.Close()
 
-	db, err := database.New(&cfg.Database)
+	db, err := postgres.New(&cfg.Postgres)
 	if err != nil {
 		slog.Error("failed to initialize database", "error", err)
 		os.Exit(1)
