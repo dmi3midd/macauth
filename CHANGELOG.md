@@ -42,3 +42,7 @@
 - Refactored project structure.
 - Improved error handling.
 - Updated docs.
+
+## [v3.0.1] - 2026-07-06
+
+- Added JWT config.
