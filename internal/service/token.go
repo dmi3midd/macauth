@@ -51,20 +51,22 @@ type TokenService interface {
 
 type tokenService struct {
 	tokenStore repository.TokenRepository
+	jwt        *config.JWT
 	keys       config.KeysPair
 }
 
-func NewTokenService(tokenStore repository.TokenRepository, keys *config.KeysPair) TokenService {
+func NewTokenService(tokenStore repository.TokenRepository, cfg *config.JWT, keys *config.KeysPair) TokenService {
 	return &tokenService{
 		tokenStore: tokenStore,
+		jwt:        cfg,
 		keys:       *keys,
 	}
 }
 
 func (s *tokenService) GenerateTokens(user domain.UserDto, clientId string) (*domain.TokensPair, string, error) {
 	op := "tokenService.GenerateTokens"
-	accessExpiry, _ := time.ParseDuration("30m")
-	refreshExpiry, _ := time.ParseDuration("336h")
+	accessExpiry := s.jwt.AccessTokenTTL
+	refreshExpiry := s.jwt.RefreshTokenTTL
 	now := time.Now()
 	id := xid.New().String()
 

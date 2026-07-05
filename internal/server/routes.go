@@ -34,7 +34,7 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 	go cleaner.Start(ctx)
 
 	// services
-	tokenService := service.NewTokenService(tokenRepo, &s.cfg.Keys)
+	tokenService := service.NewTokenService(tokenRepo, &s.cfg.JWT, &s.cfg.Keys)
 	userService := service.NewUserService(userRepo, tokenService)
 	passwordResetService := service.NewResetService(resetRepo, userRepo, tokenRepo)
 	permissionService := service.NewPermissionService(permissionRepo)

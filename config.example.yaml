@@ -13,6 +13,9 @@ httpServer:
   idleTimeout: 90s
   readTimeout: 10s
   writeTimeout: 20s
+jwt:
+  accessTokenTTL: 15m
+  refreshTokenTTL: 7d
 pem:
   privPath: ./storage/keys/private.pem
   pubPath: ./storage/keys/public.pem

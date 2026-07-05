@@ -29,6 +29,11 @@ type HTTPServer struct {
 	WriteTimeout time.Duration `yaml:"writeTimeout"`
 }
 
+type JWT struct {
+	AccessTokenTTL  time.Duration `yaml:"accessTokenTTL"`
+	RefreshTokenTTL time.Duration `yaml:"refreshTokenTTL"`
+}
+
 type PEM struct {
 	PrivPath string `yaml:"privPath"`
 	PubPath  string `yaml:"pubPath"`
@@ -45,6 +50,7 @@ type TokenCleaner struct {
 type Config struct {
 	Postgres     `yaml:"postgres"`
 	HTTPServer   `yaml:"httpServer"`
+	JWT          `yaml:"jwt"`
 	PEM          `yaml:"pem"`
 	Log          `yaml:"log"`
 	TokenCleaner `yaml:"tokenCleaner"`

@@ -158,7 +158,6 @@ When a user requests a password reset:
    }
    ```
 
-   *Note: This request requires `x-client-id` and `x-client-secret` headers.*
 2. `macauth` generates a secure reset token and returns it:
 
    ```json
@@ -184,7 +183,6 @@ When the user submits their new password:
    ```
 
 2. `macauth` validates the token, hashes the new password, updates the user record, marks the token as used, and **invalidates all active sessions (Refresh Tokens)** for this user.
-   *Note: This request also requires `x-client-id` and `x-client-secret` headers.*
 
 ## ❗️ WARNINGS
 
