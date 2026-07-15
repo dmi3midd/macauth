@@ -53,7 +53,6 @@ func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error
 }
 
 type LoginRequest struct {
-	ClientId string `json:"clientId" validate:"required"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=8,max=64"`
 }
@@ -75,7 +74,6 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) error {
 		ctx,
 		reqBody.Email,
 		reqBody.Password,
-		reqBody.ClientId,
 	)
 	if err != nil {
 		return err
@@ -119,7 +117,6 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) error {
 }
 
 type RefreshRequest struct {
-	ClientId     string `json:"clientId" validate:"required"`
 	RefreshToken string `json:"refreshToken" validate:"required"`
 }
 
@@ -136,7 +133,7 @@ func (h *UserHandler) Refresh(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	ctx := r.Context()
-	userData, err := h.userService.Refresh(ctx, reqBody.RefreshToken, reqBody.ClientId)
+	userData, err := h.userService.Refresh(ctx, reqBody.RefreshToken)
 	if err != nil {
 		return err
 	}

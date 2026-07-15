@@ -26,14 +26,14 @@ type UserService interface {
 	// Login performs user login and returns LoginResult struct.
 	// It returns [ErrUserNotFound] if no user are found.
 	// It returns [ErrInvalidPassword] if the password is invalid.
-	Login(ctx context.Context, email, password, clientId string) (*domain.AuthDto, error)
+	Login(ctx context.Context, email, password string) (*domain.AuthDto, error)
 	// Logout performs logout user.
 	// Look at TokenService.ValidateRefreshToken for other errors.
 	Logout(ctx context.Context, refreshToken string) error
 	// Refresh performs refreshing access and refresh tokens.
 	// It returns [ErrUserNotFound] if no user are found.
 	// Look at TokenService.ValidateRefreshToken for other errors.
-	Refresh(ctx context.Context, refreshToken, clientId string) (*domain.AuthDto, error)
+	Refresh(ctx context.Context, refreshToken string) (*domain.AuthDto, error)
 	// Validate validates access token and returns User data.
 	// Look at TokenService.ValidateAccessToken for other errors.
 	Validate(ctx context.Context, accessToken string) (*domain.UserDto, error)
@@ -41,16 +41,16 @@ type UserService interface {
 
 type userService struct {
 	userStore    repository.UserRepository
-	tokenService TokenService
+	tokenManager TokenManager
 }
 
 func NewUserService(
 	userStore repository.UserRepository,
-	tokenService TokenService,
+	tokenManager TokenManager,
 ) UserService {
 	return &userService{
 		userStore:    userStore,
-		tokenService: tokenService,
+		tokenManager: tokenManager,
 	}
 }
 
@@ -87,7 +87,7 @@ func (s *userService) Registration(ctx context.Context, username, email, passwor
 	return nil
 }
 
-func (s *userService) Login(ctx context.Context, email, password, clientId string) (*domain.AuthDto, error) {
+func (s *userService) Login(ctx context.Context, email, password string) (*domain.AuthDto, error) {
 	op := "UserService.Login"
 
 	user, err := s.userStore.GetByEmail(ctx, email)
@@ -103,29 +103,28 @@ func (s *userService) Login(ctx context.Context, email, password, clientId strin
 	}
 
 	userDto := user.ToUserDto()
-	tokens, tokenId, err := s.tokenService.GenerateTokens(*userDto, clientId)
+	tokens, tokenId, err := s.tokenManager.GenerateTokens(*userDto)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	_, err = s.tokenService.SaveToken(ctx, tokens.RefreshToken, userDto.UserId, clientId, tokenId)
+	_, err = s.tokenManager.SaveToken(ctx, tokens.RefreshToken, userDto.UserId, tokenId)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &domain.AuthDto{
-		ClientId: clientId,
-		User:     *userDto,
-		Tokens:   domain.TokensPair(*tokens),
+		User:   *userDto,
+		Tokens: domain.TokensPair(*tokens),
 	}, nil
 }
 
 func (s *userService) Logout(ctx context.Context, refreshToken string) error {
 	op := "UserService.Logout"
-	tokenId, _, err := s.tokenService.ValidateRefreshToken(refreshToken)
+	tokenId, _, err := s.tokenManager.ValidateRefreshToken(refreshToken)
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
-	if err := s.tokenService.RemoveToken(ctx, tokenId); err != nil {
+	if err := s.tokenManager.RemoveToken(ctx, tokenId); err != nil {
 		if errors.Is(err, ErrTokenNotFound) {
 			return nil
 		}
@@ -134,23 +133,15 @@ func (s *userService) Logout(ctx context.Context, refreshToken string) error {
 	return nil
 }
 
-func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string) (*domain.AuthDto, error) {
+func (s *userService) Refresh(ctx context.Context, refreshToken string) (*domain.AuthDto, error) {
 	op := "UserService.Refresh"
 
-	tokenId, userId, err := s.tokenService.ValidateRefreshToken(refreshToken)
+	tokenId, userId, err := s.tokenManager.ValidateRefreshToken(refreshToken)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	foundToken, err := s.tokenService.FindToken(ctx, tokenId)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
-	}
-	if foundToken.ClientId != clientId {
-		return nil, fmt.Errorf("%s: %w", op, ErrInvalidRefreshToken)
-	}
-
-	if err := s.tokenService.RemoveToken(ctx, tokenId); err != nil {
+	if err := s.tokenManager.RemoveToken(ctx, tokenId); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -162,29 +153,28 @@ func (s *userService) Refresh(ctx context.Context, refreshToken, clientId string
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	userDto := user.ToUserDto()
-	tokens, newTokenId, err := s.tokenService.GenerateTokens(*userDto, clientId)
+	tokens, newTokenId, err := s.tokenManager.GenerateTokens(*userDto)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if _, err := s.tokenService.SaveToken(ctx, tokens.RefreshToken, userId, clientId, newTokenId); err != nil {
+	if _, err := s.tokenManager.SaveToken(ctx, tokens.RefreshToken, userId, newTokenId); err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &domain.AuthDto{
-		ClientId: clientId,
-		User:     *userDto,
-		Tokens:   domain.TokensPair(*tokens),
+		User:   *userDto,
+		Tokens: domain.TokensPair(*tokens),
 	}, nil
 }
 
 func (s *userService) Validate(ctx context.Context, accessToken string) (*domain.UserDto, error) {
 	op := "UserService.Validate"
-	userDto, tokenId, err := s.tokenService.ValidateAccessToken(accessToken)
+	userDto, tokenId, err := s.tokenManager.ValidateAccessToken(accessToken)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
-	if _, err := s.tokenService.FindToken(ctx, tokenId); err != nil {
+	if _, err := s.tokenManager.FindToken(ctx, tokenId); err != nil {
 		if errors.Is(err, repository.ErrTokenNotFound) {
 			return nil, fmt.Errorf("%s: %w", op, ErrInvalidAccessToken)
 		}

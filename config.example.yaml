@@ -15,7 +15,7 @@ httpServer:
   writeTimeout: 20s
 jwt:
   accessTokenTTL: 15m
-  refreshTokenTTL: 7d
+  refreshTokenTTL: 168h
 pem:
   privPath: ./storage/keys/private.pem
   pubPath: ./storage/keys/public.pem

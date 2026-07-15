@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "4a71de04-cd5e-49b2-be2b-c8ffea6b251a",
     "name": "Macauth API",
-    "description": "API requests collection for macauth (service-to-service). All tokens and clientId are passed via request/response body.",
+    "description": "API requests collection for macauth (service-to-service).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -50,7 +50,7 @@
                 "registration"
               ]
             },
-            "description": "Register a new user. clientId is passed in request body."
+            "description": "Register a new user."
           },
           "response": []
         },
@@ -98,7 +98,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/macauth/api/v1/auth/login",
@@ -152,7 +152,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"clientId\": \"{{clientId}}\",\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/macauth/api/v1/auth/refresh",
@@ -376,204 +376,7 @@
         }
       ]
     },
-    {
-      "name": "Permissions API",
-      "item": [
-        {
-          "name": "Check Permissions",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Response contains has_permission\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property(\"has_permission\");",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"client_id\": \"{{clientId}}\",\n  \"permissions\": [\"pubex:read\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/permissions/has",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "macauth",
-                "api",
-                "v1",
-                "permissions",
-                "has"
-              ]
-            },
-            "description": "Check if a user has the specified permissions."
-          },
-          "response": []
-        },
-        {
-          "name": "Get Permissions",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Response is an array\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.be.an('array');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"client_id\": \"{{clientId}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/permissions/get",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "macauth",
-                "api",
-                "v1",
-                "permissions",
-                "get"
-              ]
-            },
-            "description": "Get all permissions for a user within a client scope."
-          },
-          "response": []
-        },
-        {
-          "name": "Add Permissions",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test(\"Response contains permissions\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property(\"permissions\");",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"client_id\": \"{{clientId}}\",\n  \"permissions\": [\"pubex:admin\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/permissions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "macauth",
-                "api",
-                "v1",
-                "permissions"
-              ]
-            },
-            "description": "Add permissions to a user within a client scope."
-          },
-          "response": []
-        },
-        {
-          "name": "Remove Permissions",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"client_id\": \"{{clientId}}\",\n  \"permissions\": [\"pubex:write\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/macauth/api/v1/permissions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "macauth",
-                "api",
-                "v1",
-                "permissions"
-              ]
-            },
-            "description": "Remove permissions from a user within a client scope."
-          },
-          "response": []
-        }
-      ]
-    },
+
     {
       "name": "Public Key API",
       "item": [

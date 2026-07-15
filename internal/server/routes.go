@@ -4,7 +4,6 @@ import (
 	"context"
 	"macauth/internal/repository"
 	"macauth/internal/server/auth"
-	"macauth/internal/server/permissions"
 	"macauth/internal/server/reset"
 	"macauth/internal/service"
 	"macauth/internal/shared/apierror"
@@ -23,7 +22,6 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 	tokenRepo := repository.NewTokenRepo(s.db.GetDB())
 	userRepo := repository.NewUserRepo(s.db.GetDB())
 	resetRepo := repository.NewResetRepo(s.db.GetDB())
-	permissionRepo := repository.NewPermissionRepo(s.db.GetDB())
 
 	// workers
 	cleanerInterval := 1 * time.Hour
@@ -34,15 +32,13 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 	go cleaner.Start(ctx)
 
 	// services
-	tokenService := service.NewTokenService(tokenRepo, &s.cfg.JWT, &s.cfg.Keys)
-	userService := service.NewUserService(userRepo, tokenService)
+	tokenManager := service.NewTokenManager(tokenRepo, &s.cfg.JWT, &s.cfg.Keys)
+	userService := service.NewUserService(userRepo, tokenManager)
 	passwordResetService := service.NewResetService(resetRepo, userRepo, tokenRepo)
-	permissionService := service.NewPermissionService(permissionRepo)
 
 	// handlers
 	authHandler := auth.NewUserHandler(userService)
 	resetHandler := reset.NewResetHandler(passwordResetService)
-	permissionHandler := permissions.NewPermissionHandler(permissionService)
 
 	// routes
 	mainRouter := chi.NewRouter()
@@ -68,12 +64,6 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 		r.Route("/reset", func(r chi.Router) {
 			r.Post("/initiate-reset", apierror.ErrorHandler(resetHandler.InitiateReset))
 			r.Post("/confirm-reset", apierror.ErrorHandler(resetHandler.ConfirmReset))
-		})
-		r.Route("/permissions", func(r chi.Router) {
-			r.Post("/has", apierror.ErrorHandler(permissionHandler.HasPermission))
-			r.Post("/get", apierror.ErrorHandler(permissionHandler.GetPermissions))
-			r.Post("/", apierror.ErrorHandler(permissionHandler.AddPermissions))
-			r.Delete("/", apierror.ErrorHandler(permissionHandler.RemovePermissions))
 		})
 		r.Route("/public-key", func(r chi.Router) {
 			r.Get("/", apierror.ErrorHandler(func(w http.ResponseWriter, r *http.Request) error {

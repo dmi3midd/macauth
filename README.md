@@ -21,15 +21,12 @@ cd macauth
 
 Run the setup script. It will automatically:
 
-- Generate a highly secure random `API_KEY` (saved in the `.env` file).
 - Prepare `config.yaml`.
 - Generate an RSA key pair (`private.pem` & `public.pem`) required for JWT signing.
 
 ```bash
 make setup
 ```
-
-*Note: Make sure to securely store your `API_KEY` found in the `.env` file.*
 
 ### 3. Start the service
 
@@ -70,14 +67,19 @@ Your SSO service is now up and running at `http://localhost:2800` (default port)
 
 ## 🔑 Integration with other microservices
 
-You can make requests to `http://localhost:2800/macauth/api/v1/user/validate` to validate access token. To validate token you need to set `Authorization` header with value `Bearer {access_token}`. Also you need to set `x-client-id` header with value `{client_id}` and `x-client-secret` header with value `{client_secret}`.
+You can make requests to `http://localhost:2800/macauth/api/v1/auth/validate` to validate an access token. Send a `POST` request with the `accessToken` in the JSON request body:
 
-But if you want to validate access token locally (without network requests), you can use `macauth`'s public key. To get the public key, you can make a `GET` request to `http://localhost:2800/macauth/api/v1/client/public-key`.
-*(Note: since this endpoint is protected, you must include your setup `API_KEY` in the request headers as `x-api-key`)*.
+```json
+{
+  "accessToken": "your-access-token"
+}
+```
+
+If you want to validate access tokens locally (without network requests), you can use `macauth`'s public key. To get the public key, you can make a `GET` request to `http://localhost:2800/macauth/api/v1/public-key`.
 
 To integrate token validation into your projects:
 
-1. Make a `GET` request to `http://localhost:2800/macauth/api/v1/client/public-key` during the initialization of your external service.
+1. Make a `GET` request to `http://localhost:2800/macauth/api/v1/public-key` during the initialization of your external service.
 2. Cache the returned **Public Key** in memory.
 3. Validate all incoming JWT access tokens locally using this public key—ensuring zero network latency and maximum performance.
 
@@ -134,8 +136,8 @@ func ValidateAccessToken(accessToken string, publicKey *rsa.PublicKey) (*UserDto
 
  return &UserDto{
   UserId:      userId,
-  Username:    claims.Username,
-  Email:       claims.Email,
+  Username:    claims.User.Username,
+  Email:       claims.User.Email,
  }, tokenId, nil
 }
 ```
@@ -150,7 +152,7 @@ Since `macauth` does not communicate with end-users directly, the password reset
 
 When a user requests a password reset:
 
-1. Make a `POST` request to `/macauth/api/v1/user/reset` with the user's email:
+1. Make a `POST` request to `/macauth/api/v1/reset/initiate-reset` with the user's email:
 
    ```json
    {
@@ -173,7 +175,7 @@ When a user requests a password reset:
 
 When the user submits their new password:
 
-1. Make a `POST` request to `/macauth/api/v1/user/confirm-reset` with the token and new password:
+1. Make a `POST` request to `/macauth/api/v1/reset/confirm-reset` with the token and new password:
 
    ```json
    {
@@ -185,5 +187,3 @@ When the user submits their new password:
 2. `macauth` validates the token, hashes the new password, updates the user record, marks the token as used, and **invalidates all active sessions (Refresh Tokens)** for this user.
 
 ## ❗️ WARNINGS
-
-- Highly recommend to use v3.0.0 of this service. It has a lot of bug fixes.

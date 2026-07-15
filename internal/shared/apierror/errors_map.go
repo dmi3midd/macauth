@@ -40,15 +40,6 @@ var ErrorMap = map[error]func(err error) error{
 	service.ErrInvalidToken: func(err error) error {
 		return NewBadRequestError(err, "Invalid reset token")
 	},
-	service.ErrEmptyPermissions: func(err error) error {
-		return NewBadRequestError(err, "Empty permissions")
-	},
-	service.ErrPermissionNotFound: func(err error) error {
-		return NewNotFoundError(err, "Permission not found")
-	},
-	service.ErrTooManyPermissions: func(err error) error {
-		return NewBadRequestError(err, "Too many permissions")
-	},
 }
 
 func MapError(err error) error {

@@ -1,11 +1,12 @@
 -- +goose Up
-CREATE TABLE clients (
+CREATE TABLE users (
     id VARCHAR(20) PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
-    hashed_secret VARCHAR(255) NOT NULL,
+    username VARCHAR(64) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    hashed_password VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- +goose Down
-DROP TABLE clients;
+DROP TABLE users;

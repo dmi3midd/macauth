@@ -9,12 +9,6 @@
       "enabled": true
     },
     {
-      "key": "clientId",
-      "value": "test_client_id",
-      "type": "default",
-      "enabled": true
-    },
-    {
       "key": "userEmail",
       "value": "user@example.com",
       "type": "default",
