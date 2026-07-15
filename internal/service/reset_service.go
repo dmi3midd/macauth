@@ -89,7 +89,7 @@ func (s *resetService) ConfirmReset(ctx context.Context, tokenStr string, newPas
 	op := "ResetService.ConfirmReset"
 
 	hashedToken := sha256.Sum256([]byte(tokenStr))
-	candidateToken, err := s.resetStore.FindValidByTokenHash(ctx, hex.EncodeToString(hashedToken[:]))
+	candidateToken, err := s.resetStore.GetByHash(ctx, hex.EncodeToString(hashedToken[:]))
 	if err != nil {
 		if errors.Is(err, repository.ErrResetNotFound) {
 			return fmt.Errorf("%s: %w", op, ErrInvalidToken)

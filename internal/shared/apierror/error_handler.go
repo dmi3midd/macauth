@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+// AppHandler is a function that handles an HTTP request and returns an error.
 type AppHandler func(w http.ResponseWriter, r *http.Request) error
 
 func ErrorHandler(fn AppHandler) http.HandlerFunc {
@@ -19,6 +20,7 @@ func ErrorHandler(fn AppHandler) http.HandlerFunc {
 	}
 }
 
+// HandleError handles an error and returns an API error response.
 func HandleError(w http.ResponseWriter, r *http.Request, err error) {
 	mappedErr := MapError(err)
 	var apiErr APIError

@@ -11,13 +11,13 @@ import (
 )
 
 var (
-	ErrResetNotFound error = errors.New("reset not found")
+	ErrResetNotFound error = errors.New("reset token not found")
 )
 
 type ResetRepository interface {
-	// FindValidByTokenHash finds a PasswordReset entity by its token hash.
+	// GetByTokenHash finds a PasswordReset entity by its token hash.
 	// Returns [ErrResetNotFound] if no reset is found.
-	FindValidByTokenHash(ctx context.Context, tokenHash string) (*domain.PasswordReset, error)
+	GetByHash(ctx context.Context, tokenHash string) (*domain.PasswordReset, error)
 	// Create creates a PasswordReset entity and returns its id.
 	Create(ctx context.Context, reset *domain.PasswordReset) (string, error)
 	// Update updates the PasswordReset entity.
@@ -34,8 +34,8 @@ func NewResetRepo(db *sqlx.DB) ResetRepository {
 	}
 }
 
-func (r *resetRepository) FindValidByTokenHash(ctx context.Context, tokenHash string) (*domain.PasswordReset, error) {
-	op := "ResetRepository.FindValidByTokenHash"
+func (r *resetRepository) GetByHash(ctx context.Context, tokenHash string) (*domain.PasswordReset, error) {
+	op := "ResetRepository.GetByHash"
 	var reset domain.PasswordReset
 	query := `
 	SELECT id, user_id, token_hash, expires_at, used_at, created_at

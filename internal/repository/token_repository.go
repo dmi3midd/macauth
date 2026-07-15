@@ -18,10 +18,10 @@ var (
 
 type TokenRepository interface {
 	// Get retrieves a Token entity by its id.
-	// It returns [ErrTokenNotFound] if no token are found.
+	// Returns [ErrTokenNotFound] if no token are found.
 	GetById(ctx context.Context, id string) (*domain.Token, error)
 	// Get retrieves a Token entity by its refresh token.
-	// It returns [ErrTokenNotFound] if no token are found.
+	// Returns [ErrTokenNotFound] if no token are found.
 	GetByToken(ctx context.Context, refreshToken string) (*domain.Token, error)
 	// Create creates a Token entity.
 	Create(ctx context.Context, token *domain.Token) (string, error)
@@ -32,6 +32,7 @@ type TokenRepository interface {
 	// DeleteByToken removes the Token entity by its refresh token.
 	DeleteByToken(ctx context.Context, refreshToken string) error
 	// DeleteExpired removes expired tokens.
+	// Returns [ErrNoRowsDeleted] if no token are found to delete.
 	DeleteExpired(ctx context.Context) error
 	// DeleteByUserId removes tokens by user id.
 	DeleteByUserId(ctx context.Context, userId string) error
@@ -48,7 +49,7 @@ func NewTokenRepo(db *sqlx.DB) TokenRepository {
 }
 
 func (r *tokenRepository) GetById(ctx context.Context, id string) (*domain.Token, error) {
-	op := "tokenRepository.GetById"
+	op := "TokenRepository.GetById"
 	query := `SELECT id, refresh_token, user_id, expires_at
 	FROM tokens WHERE id = $1
 	`
@@ -64,7 +65,7 @@ func (r *tokenRepository) GetById(ctx context.Context, id string) (*domain.Token
 }
 
 func (r *tokenRepository) GetByToken(ctx context.Context, refreshToken string) (*domain.Token, error) {
-	op := "tokenRepository.GetByToken"
+	op := "TokenRepository.GetByToken"
 	query := `SELECT id, refresh_token, user_id, expires_at
 	FROM tokens WHERE refresh_token = $1
 	`
@@ -80,7 +81,7 @@ func (r *tokenRepository) GetByToken(ctx context.Context, refreshToken string) (
 }
 
 func (r *tokenRepository) Create(ctx context.Context, token *domain.Token) (string, error) {
-	op := "tokenRepository.Create"
+	op := "TokenRepository.Create"
 	query := `INSERT INTO tokens (id, refresh_token, user_id, expires_at)
 			  VALUES (:id, :refresh_token, :user_id, :expires_at)`
 	if _, err := r.db.NamedExecContext(ctx, query, token); err != nil {
@@ -101,7 +102,7 @@ func (r *tokenRepository) Update(ctx context.Context, id, refreshToken string) (
 }
 
 func (r *tokenRepository) DeleteById(ctx context.Context, id string) error {
-	op := "tokenRepository.DeleteById"
+	op := "TokenRepository.DeleteById"
 	query := "DELETE FROM tokens WHERE id = $1"
 	if _, err := r.db.ExecContext(ctx, query, id); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
@@ -110,7 +111,7 @@ func (r *tokenRepository) DeleteById(ctx context.Context, id string) error {
 }
 
 func (r *tokenRepository) DeleteByToken(ctx context.Context, refreshToken string) error {
-	op := "tokenRepository.DeleteByToken"
+	op := "TokenRepository.DeleteByToken"
 	query := "DELETE FROM tokens WHERE refresh_token = $1"
 	if _, err := r.db.ExecContext(ctx, query, refreshToken); err != nil {
 		return fmt.Errorf("%s: %w", op, err)

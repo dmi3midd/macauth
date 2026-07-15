@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"crypto/rsa"
 	"errors"
 	"fmt"
 	"macauth/internal/config"
@@ -26,27 +25,25 @@ type TokenManager interface {
 	// GenerateTokens generates pair with access and refresh tokens and token id (TokensPair, tokenId, error).
 	GenerateTokens(user domain.UserDto) (*domain.TokensPair, string, error)
 	// ValidateRefreshToken validates refresh token and returns token and user id (tokenId, userId, error).
-	// It returns ("", "", error) if validation go wrong.
-	// It returns [ErrUnexpectedSigningMethod] if the token uses an unexpected signing method.
-	// It returns [ErrInvalidRefreshToken] if the token is invalid.
-	// It returns [ErrSubjectAndIDNotFound] if subject or token ID are not found in claims.
+	// Returns ("", "", error) if validation go wrong.
+	// Returns [ErrUnexpectedSigningMethod] if the token uses an unexpected signing method.
+	// Returns [ErrInvalidRefreshToken] if the token is invalid.
+	// Returns [ErrSubjectAndIDNotFound] if subject or token ID are not found in claims.
 	ValidateRefreshToken(refreshToken string) (string, string, error)
 	// ValidateAccessToken validates access token and returns userDto and token id (userDto, tokenId, error).
-	// It returns (nil, "", error) if validation go wrong.
-	// It returns [ErrUnexpectedSigningMethod] if the token uses an unexpected signing method.
-	// It returns [ErrInvalidAccessToken] if the token is invalid.
-	// It returns [ErrSubjectAndIDNotFound] if subject or token ID are not found in claims.
+	// Returns (nil, "", error) if validation go wrong.
+	// Returns [ErrUnexpectedSigningMethod] if the token uses an unexpected signing method.
+	// Returns [ErrInvalidAccessToken] if the token is invalid.
+	// Returns [ErrSubjectAndIDNotFound] if subject or token ID are not found in claims.
 	ValidateAccessToken(accessToken string) (*domain.UserDto, string, error)
 	// SaveToken creates refresh token for the user.
 	SaveToken(ctx context.Context, refreshToken, userId, tokenId string) (string, error)
 	// RemoveToken removes refresh token.
-	// It returns [ErrTokenNotFound] if no token are found.
+	// Returns [ErrTokenNotFound] if no token are found.
 	RemoveToken(ctx context.Context, id string) error
 	// FindToken finds and returns a Token entity by its refresh token string.
-	// It returns [ErrTokenNotFound] if no token are found.
+	// Returns [ErrTokenNotFound] if no token are found.
 	FindToken(ctx context.Context, id string) (*domain.Token, error)
-	// GetPublicKey returns public rsa keys
-	GetPublicKey() rsa.PublicKey
 }
 
 type tokenManager struct {
@@ -64,7 +61,7 @@ func NewTokenManager(tokenStore repository.TokenRepository, cfg *config.JWT, key
 }
 
 func (s *tokenManager) GenerateTokens(user domain.UserDto) (*domain.TokensPair, string, error) {
-	op := "tokenManager.GenerateTokens"
+	op := "TokenManager.GenerateTokens"
 	accessExpiry := s.jwt.AccessTokenTTL
 	refreshExpiry := s.jwt.RefreshTokenTTL
 	now := time.Now()
@@ -108,7 +105,7 @@ func (s *tokenManager) GenerateTokens(user domain.UserDto) (*domain.TokensPair, 
 }
 
 func (s *tokenManager) ValidateRefreshToken(refreshToken string) (string, string, error) {
-	op := "tokenManager.ValidateRefreshToken"
+	op := "TokenManager.ValidateRefreshToken"
 	claims := &jwt.RegisteredClaims{}
 	token, err := jwt.ParseWithClaims(refreshToken, claims, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
@@ -136,7 +133,7 @@ func (s *tokenManager) ValidateRefreshToken(refreshToken string) (string, string
 }
 
 func (s *tokenManager) ValidateAccessToken(accessToken string) (*domain.UserDto, string, error) {
-	op := "tokenManager.ValidateAccessToken"
+	op := "TokenManager.ValidateAccessToken"
 	claims := &domain.AccessClaims{}
 	token, err := jwt.ParseWithClaims(accessToken, claims, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
@@ -168,7 +165,7 @@ func (s *tokenManager) ValidateAccessToken(accessToken string) (*domain.UserDto,
 }
 
 func (s *tokenManager) SaveToken(ctx context.Context, refreshToken, userId, tokenId string) (string, error) {
-	op := "tokenManager.SaveToken"
+	op := "TokenManager.SaveToken"
 
 	claims := &jwt.RegisteredClaims{}
 	_, _, err := jwt.NewParser().ParseUnverified(refreshToken, claims)
@@ -198,7 +195,7 @@ func (s *tokenManager) SaveToken(ctx context.Context, refreshToken, userId, toke
 }
 
 func (s *tokenManager) RemoveToken(ctx context.Context, id string) error {
-	op := "tokenManager.RemoveToken"
+	op := "TokenManager.RemoveToken"
 	if err := s.tokenStore.DeleteById(ctx, id); err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
@@ -206,7 +203,7 @@ func (s *tokenManager) RemoveToken(ctx context.Context, id string) error {
 }
 
 func (s *tokenManager) FindToken(ctx context.Context, id string) (*domain.Token, error) {
-	op := "tokenManager.FindToken"
+	op := "TokenManager.FindToken"
 	token, err := s.tokenStore.GetById(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrTokenNotFound) {
@@ -215,8 +212,4 @@ func (s *tokenManager) FindToken(ctx context.Context, id string) (*domain.Token,
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	return token, nil
-}
-
-func (s *tokenManager) GetPublicKey() rsa.PublicKey {
-	return *s.keys.PublicKey
 }

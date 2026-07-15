@@ -8,21 +8,28 @@ import (
 	"time"
 )
 
+type TokenCleaner interface {
+	// Start starts the token cleaner worker.
+	Start(ctx context.Context)
+	// cleanExpiredTokens cleans expired tokens.
+	cleanExpiredTokens(ctx context.Context)
+}
+
 // TokenCleaner is a worker that cleans expired tokens.
-type TokenCleaner struct {
+type tokenCleaner struct {
 	cleanerInterval time.Duration
 	store           repository.TokenRepository
 }
 
-func NewTokenCleaner(cleanerInterval time.Duration, store repository.TokenRepository) *TokenCleaner {
-	return &TokenCleaner{
+func NewTokenCleaner(cleanerInterval time.Duration, store repository.TokenRepository) TokenCleaner {
+	return &tokenCleaner{
 		cleanerInterval: cleanerInterval,
 		store:           store,
 	}
 }
 
 // Start starts the token cleaner worker.
-func (tc *TokenCleaner) Start(ctx context.Context) {
+func (tc *tokenCleaner) Start(ctx context.Context) {
 	slog.Info("Starting TokenCleaner worker", slog.Duration("interval", tc.cleanerInterval))
 
 	tc.cleanExpiredTokens(ctx)
@@ -42,7 +49,7 @@ func (tc *TokenCleaner) Start(ctx context.Context) {
 }
 
 // cleanExpiredTokens cleans expired tokens.
-func (tc *TokenCleaner) cleanExpiredTokens(ctx context.Context) {
+func (tc *tokenCleaner) cleanExpiredTokens(ctx context.Context) {
 	op := "TokenCleaner.cleanExpiredTokens"
 	if err := tc.store.DeleteExpired(ctx); err != nil {
 		if errors.Is(err, repository.ErrNoRowsDeleted) {

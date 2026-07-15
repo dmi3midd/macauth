@@ -16,10 +16,10 @@ var (
 
 type UserRepository interface {
 	// GetById retrieves a User entity by its id.
-	// It returns [ErrUserNotFound] if no user are found.
+	// Returns [ErrUserNotFound] if no user are found.
 	GetById(ctx context.Context, userId string) (*domain.User, error)
 	// GetByEmail retrieves a User entity by its email.
-	// It returns [ErrUserNotFound] if no user are found.
+	// Returns [ErrUserNotFound] if no user are found.
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 	// Create creates a User entity and returns it.
 	Create(ctx context.Context, user *domain.User) (string, error)
@@ -40,7 +40,7 @@ func NewUserRepo(db *sqlx.DB) UserRepository {
 }
 
 func (r *userRepository) GetById(ctx context.Context, userId string) (*domain.User, error) {
-	op := "userRepository.GetById"
+	op := "UserRepository.GetById"
 	query := `SELECT id, username, email, hashed_password, created_at, updated_at
 	FROM users WHERE id = $1
 	`
@@ -56,7 +56,7 @@ func (r *userRepository) GetById(ctx context.Context, userId string) (*domain.Us
 }
 
 func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
-	op := "userRepository.GetByEmail"
+	op := "UserRepository.GetByEmail"
 	query := `SELECT id, username, email, hashed_password, created_at, updated_at
 	FROM users WHERE email = $1
 	`
@@ -72,7 +72,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.
 }
 
 func (r *userRepository) Create(ctx context.Context, user *domain.User) (string, error) {
-	op := "userRepository.Create"
+	op := "UserRepository.Create"
 	query := `INSERT INTO users
 		   (id, username, email, hashed_password, created_at, updated_at)
 	VALUES (:id, :username, :email, :hashed_password, :created_at, :updated_at)
@@ -84,7 +84,7 @@ func (r *userRepository) Create(ctx context.Context, user *domain.User) (string,
 }
 
 func (r *userRepository) Update(ctx context.Context, user *domain.User) (string, error) {
-	op := "userRepository.Update"
+	op := "UserRepository.Update"
 	query := `UPDATE users
 	SET username = :username, email = :email, hashed_password = :hashed_password, updated_at = :updated_at
 	WHERE id = :id
@@ -97,7 +97,7 @@ func (r *userRepository) Update(ctx context.Context, user *domain.User) (string,
 }
 
 func (r *userRepository) Delete(ctx context.Context, userId string) error {
-	op := "userRepository.Delete"
+	op := "UserRepository.Delete"
 	query := "DELETE FROM users WHERE id = $1"
 	if _, err := r.db.ExecContext(ctx, query, userId); err != nil {
 		return fmt.Errorf("%s: %w", op, err)

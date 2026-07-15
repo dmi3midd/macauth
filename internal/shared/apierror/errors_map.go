@@ -6,6 +6,7 @@ import (
 	"macauth/internal/service"
 )
 
+// ErrorMap map with service errors -> API errors.
 var ErrorMap = map[error]func(err error) error{
 	service.ErrUserAlreadyExist: func(err error) error {
 		return NewConflictError(err, "User already exist with this email")
@@ -42,6 +43,7 @@ var ErrorMap = map[error]func(err error) error{
 	},
 }
 
+// MapError maps a service error to an API error.
 func MapError(err error) error {
 	if err == nil {
 		return nil

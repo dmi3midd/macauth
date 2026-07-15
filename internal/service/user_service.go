@@ -16,22 +16,21 @@ var (
 	ErrUserAlreadyExist = errors.New("user already exist")
 	ErrUserNotFound     = errors.New("user not found")
 	ErrInvalidPassword  = errors.New("invalid password")
-	// ErrUnauthorized     = errors.New("user unauthorized")
 )
 
 type UserService interface {
 	// Registration performs user registration and returns UserData struct.
-	// It returns [ErrUserAlreadyExist] if the user exist.
+	// Returns [ErrUserAlreadyExist] if the user exist.
 	Registration(ctx context.Context, username, email, password string) error
 	// Login performs user login and returns LoginResult struct.
-	// It returns [ErrUserNotFound] if no user are found.
-	// It returns [ErrInvalidPassword] if the password is invalid.
+	// Returns [ErrUserNotFound] if no user are found.
+	// Returns [ErrInvalidPassword] if the password is invalid.
 	Login(ctx context.Context, email, password string) (*domain.AuthDto, error)
 	// Logout performs logout user.
 	// Look at TokenService.ValidateRefreshToken for other errors.
 	Logout(ctx context.Context, refreshToken string) error
 	// Refresh performs refreshing access and refresh tokens.
-	// It returns [ErrUserNotFound] if no user are found.
+	// Returns [ErrUserNotFound] if no user are found.
 	// Look at TokenService.ValidateRefreshToken for other errors.
 	Refresh(ctx context.Context, refreshToken string) (*domain.AuthDto, error)
 	// Validate validates access token and returns User data.
