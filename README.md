@@ -4,7 +4,7 @@
 
 # macauth
 
-### A lightweight SSO microservice designed for centralized authentication and secure session management for your pet-projects
+### A lightweight SSO microservice designed for authentication and secure session management for your pet-project
 
 ## 🚀 Quick Start (Docker)
 
@@ -187,3 +187,7 @@ When the user submits their new password:
 2. `macauth` validates the token, hashes the new password, updates the user record, marks the token as used, and **invalidates all active sessions (Refresh Tokens)** for this user.
 
 ## ❗️ WARNINGS
+
+Since 4.0.0 version macauth philosophy changed. Now macauth doesn't support permissions.
+Macauth now its just a simple auth service for your another backend service.
+For full SSO service you can see [grpcsso](https://github.com/dmi3midd/grpcsso), but now it's still in development.

@@ -46,3 +46,10 @@
 ## [v3.0.1] - 2026-07-06
 
 - Added JWT config.
+
+## [v4.0.0] - 2026-07-15
+
+- Removed permission functionality.
+- Refactored project structure.
+- Updated migrations.
+- Minor fixes and improvements.
