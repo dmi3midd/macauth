@@ -52,4 +52,5 @@
 - Removed permission functionality.
 - Refactored project structure.
 - Updated migrations.
+- Updated route path.
 - Minor fixes and improvements.

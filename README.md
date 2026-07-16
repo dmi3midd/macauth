@@ -67,7 +67,7 @@ Your SSO service is now up and running at `http://localhost:2800` (default port)
 
 ## 🔑 Integration with other microservices
 
-You can make requests to `http://localhost:2800/macauth/api/v1/auth/validate` to validate an access token. Send a `POST` request with the `accessToken` in the JSON request body:
+You can make requests to `macauth/auth/validate` to validate an access token. Send a `POST` request with the `accessToken` in the JSON request body:
 
 ```json
 {
@@ -75,11 +75,11 @@ You can make requests to `http://localhost:2800/macauth/api/v1/auth/validate` to
 }
 ```
 
-If you want to validate access tokens locally (without network requests), you can use `macauth`'s public key. To get the public key, you can make a `GET` request to `http://localhost:2800/macauth/api/v1/public-key`.
+If you want to validate access tokens locally (without network requests), you can use `macauth`'s public key. To get the public key, you can make a `GET` request to `macauth/public-key`.
 
 To integrate token validation into your projects:
 
-1. Make a `GET` request to `http://localhost:2800/macauth/api/v1/public-key` during the initialization of your external service.
+1. Make a `GET` request to `macauth/public-key` during the initialization of your external service.
 2. Cache the returned **Public Key** in memory.
 3. Validate all incoming JWT access tokens locally using this public key—ensuring zero network latency and maximum performance.
 
@@ -152,7 +152,7 @@ Since `macauth` does not communicate with end-users directly, the password reset
 
 When a user requests a password reset:
 
-1. Make a `POST` request to `/macauth/api/v1/reset/initiate-reset` with the user's email:
+1. Make a `POST` request to `/macauth/reset/initiate-reset` with the user's email:
 
    ```json
    {
@@ -175,7 +175,7 @@ When a user requests a password reset:
 
 When the user submits their new password:
 
-1. Make a `POST` request to `/macauth/api/v1/reset/confirm-reset` with the token and new password:
+1. Make a `POST` request to `macauth/reset/confirm-reset` with the token and new password:
 
    ```json
    {

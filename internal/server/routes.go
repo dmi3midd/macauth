@@ -53,7 +53,7 @@ func (s *Server) RegisterRoutes(ctx context.Context) *chi.Mux {
 	mainRouter.Use(chimiddleware.RequestID)
 	mainRouter.Use(chimiddleware.Recoverer)
 
-	mainRouter.Route("/macauth/api/v1", func(r chi.Router) {
+	mainRouter.Route("/macauth", func(r chi.Router) {
 		r.Route("/auth", func(r chi.Router) {
 			r.Post("/registration", apierror.ErrorHandler(authHandler.Registration))
 			r.Post("/login", apierror.ErrorHandler(authHandler.Login))
