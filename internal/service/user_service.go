@@ -21,7 +21,7 @@ var (
 type UserService interface {
 	// Registration performs user registration and returns UserData struct.
 	// Returns [ErrUserAlreadyExist] if the user exist.
-	Registration(ctx context.Context, username, email, password string) error
+	Registration(ctx context.Context, username, email, password string) (*domain.UserDto, error)
 	// Login performs user login and returns LoginResult struct.
 	// Returns [ErrUserNotFound] if no user are found.
 	// Returns [ErrInvalidPassword] if the password is invalid.
@@ -53,22 +53,22 @@ func NewUserService(
 	}
 }
 
-func (s *userService) Registration(ctx context.Context, username, email, password string) error {
+func (s *userService) Registration(ctx context.Context, username, email, password string) (*domain.UserDto, error) {
 	op := "UserService.Registration"
 
 	candidate, err := s.userStore.GetByEmail(ctx, email)
 	if err != nil && !errors.Is(err, repository.ErrUserNotFound) {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	if candidate != nil {
-		return fmt.Errorf("%s: %w", op, ErrUserAlreadyExist)
+		return nil, fmt.Errorf("%s: %w", op, ErrUserAlreadyExist)
 	}
 
 	id := xid.New().String()
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	user := &domain.User{
@@ -80,10 +80,10 @@ func (s *userService) Registration(ctx context.Context, username, email, passwor
 		UpdatedAt:      time.Now(),
 	}
 	if _, err := s.userStore.Create(ctx, user); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
+	return user.ToUserDto(), nil
 }
 
 func (s *userService) Login(ctx context.Context, email, password string) (*domain.AuthDto, error) {

@@ -30,6 +30,10 @@ type RegistrationRequest struct {
 	Password string `json:"password" validate:"required,min=8,max=64"`
 }
 
+type RegistrationResponse struct {
+	User domain.UserDto `json:"user"`
+}
+
 func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error {
 	reqBody, err := httputil.BindAndValidate[RegistrationRequest](r, h.validate)
 	if err != nil {
@@ -37,17 +41,26 @@ func (h *UserHandler) Registration(w http.ResponseWriter, r *http.Request) error
 	}
 
 	ctx := r.Context()
-	if err := h.userService.Registration(
+	userDto, err := h.userService.Registration(
 		ctx,
 		reqBody.Username,
 		reqBody.Email,
 		reqBody.Password,
-	); err != nil {
+	)
+	if err != nil {
 		return err
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+
+	response := RegistrationResponse{
+		User: *userDto,
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		return err
+	}
 
 	return nil
 }

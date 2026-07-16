@@ -50,6 +50,7 @@
 ## [v4.0.0] - 2026-07-15
 
 - Removed permission functionality.
+- Updated registration endpoint.
 - Refactored project structure.
 - Updated migrations.
 - Updated route path.
